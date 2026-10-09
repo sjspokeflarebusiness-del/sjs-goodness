@@ -10,16 +10,25 @@
 <div class="form-container">
   <h1 class="form-title">Register Your Shop</h1>
   <p class="form-subtitle">Join the Puducherry marketplace.</p>
+
+  <div class="form-warning">
+    <strong>📞 Important:</strong><br>
+    After registering, <strong>contact 8056669214</strong> on WhatsApp to get your shop approved.
+    Only approved shops appear in the marketplace.
+  </div>
+
   <div id="error" class="form-error" style="display:none;"></div>
 
   <form id="register-form">
     <div class="form-group"><label>Shop Name</label><input id="name" class="form-input" required></div>
-    <div class="form-group"><label>Category</label><input id="category" class="form-input" placeholder="e.g. Groceries"></div>
+    <div class="form-group"><label>Category</label>
+      <select id="category" class="form-input"></select>
+    </div>
     <div class="form-group"><label>Description</label><input id="description" class="form-input"></div>
-    <div class="form-group"><label>Phone</label><input id="phone" class="form-input" required></div>
+    <div class="form-group"><label>Phone (WhatsApp)</label><input id="phone" class="form-input" required></div>
     <div class="form-group"><label>Email</label><input type="email" id="email" class="form-input" required></div>
     <div class="form-group"><label>Password (min 6)</label><input type="password" id="password" class="form-input" minlength="6" required></div>
-    <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+    <button type="submit" class="btn btn-primary btn-block">Submit Registration</button>
   </form>
 
   <p class="form-footer">Already registered? <a href="login.html">Sign in</a></p>
@@ -28,12 +37,15 @@
 <script src="js/utils.js"></script>
 <script src="js/db.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/categories.js"></script>
 <script>
+document.getElementById('category').innerHTML = '<option value="">Select category…</option>' + getCategoryOptions();
+
 document.getElementById('register-form').addEventListener('submit', e => {
   e.preventDefault();
   const data = {
     name: document.getElementById('name').value.trim(),
-    category: document.getElementById('category').value.trim(),
+    category: document.getElementById('category').value,
     description: document.getElementById('description').value.trim(),
     phone: document.getElementById('phone').value.trim(),
     email: document.getElementById('email').value.trim(),
@@ -46,7 +58,22 @@ document.getElementById('register-form').addEventListener('submit', e => {
     err.style.display = 'block';
     return;
   }
-  window.location.href = 'dashboard.html';
+  // Show success page
+  document.querySelector('.form-container').innerHTML = `
+    <div style="text-align:center;">
+      <div style="font-size:4rem;margin-bottom:1rem;">📞</div>
+      <h1 class="form-title">Almost there!</h1>
+      <p class="form-subtitle">Your shop <strong>${esc(data.name)}</strong> has been submitted for approval.</p>
+      <div class="form-warning" style="text-align:left;">
+        <strong>Next step — Contact us now:</strong><br>
+        WhatsApp <strong>8056669214</strong> with your shop name.<br>
+        We'll verify and approve you within 24 hours.<br><br>
+        Once approved, you'll get a notification. Then you can log in.
+      </div>
+      <a href="https://wa.me/918056669214?text=Hi, I just registered my shop: ${encodeURIComponent(data.name)}" target="_blank" class="btn btn-success btn-block mt-4">📱 WhatsApp 8056669214</a>
+      <a href="login.html" class="btn btn-ghost btn-block mt-2">Go to Login</a>
+    </div>
+  `;
 });
 </script>
 </body>
