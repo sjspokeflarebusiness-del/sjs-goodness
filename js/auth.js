@@ -2,33 +2,48 @@
    SJS GOODNESS — AUTHENTICATION
    ============================================ */
 
+const ADMIN_CONTACT = '8056669214';
+const ADMIN_USERNAME = 'flaren';
+const ADMIN_PASSWORD = 'flaren@8056669214';
+
 const Auth = {
-  // Get current logged-in shop, or null
   currentShop() {
     const session = DB.getSession();
     if (!session) return null;
     return DB.getShop(session.shopId);
   },
 
-  // Login with email + password
   login(email, password) {
     const shops = DB.getShops();
     const shop = shops.find(s =>
       s.ownerEmail === email.trim().toLowerCase() &&
       s.ownerPassword === password
     );
-    if (!shop) return null;
+    if (!shop) return { error: 'Invalid email or password.' };
+    if (shop.status === 'pending') return { error: 'pending', shop };
+    if (shop.status === 'rejected') return { error: 'Your shop registration was not approved. Contact admin.' };
     DB.setSession({ shopId: shop.id, loginAt: new Date().toISOString() });
-    return shop;
+    return { shop };
   },
 
-  // Logout
+  // Admin login
+  adminLogin(username, password) {
+    if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) return false;
+    DB.setAdminSession({ loggedIn: true, at: new Date().toISOString() });
+    return true;
+  },
+  isAdmin() { return !!DB.getAdminSession(); },
+  adminLogout() { DB.clearAdminSession(); window.location.href = 'admin-login.html'; },
+  requireAdmin() {
+    if (!Auth.isAdmin()) { window.location.href = 'admin-login.html'; return false; }
+    return true;
+  },
+
   logout() {
     DB.clearSession();
     window.location.href = 'index.html';
   },
 
-  // Register a new shop owner
   register(data) {
     const shops = DB.getShops();
     if (shops.some(s => s.ownerEmail === data.email.toLowerCase())) {
@@ -44,21 +59,25 @@ const Auth = {
       serviceArea: 'Puducherry',
       phone: data.phone || '',
       logo: '',
-      isApproved: true,
+      isApproved: false,          // pending approval
+      status: 'pending',           // pending | approved | rejected
       createdAt: new Date().toISOString()
     };
     shops.push(shop);
     DB.saveShops(shops);
-    DB.setSession({ shopId: shop.id, loginAt: new Date().toISOString() });
+
+    // Notify admin
+    DB.addNotification(null, 'new_shop_request',
+      'New Shop Request',
+      `${shop.name} (${shop.phone}) wants to join. Contact: ${shop.phone}`);
+
+    // NO auto-login — owner waits for approval
     return { shop };
   },
 
-  // Guard: redirect to login if not authenticated
   requireLogin() {
-    if (!Auth.currentShop()) {
-      window.location.href = 'login.html';
-      return null;
-    }
-    return Auth.currentShop();
+    const shop = Auth.currentShop();
+    if (!shop) { window.location.href = 'login.html'; return null; }
+    return shop;
   }
 };
