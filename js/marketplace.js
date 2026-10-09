@@ -37,4 +37,16 @@
         <a href="shop.html?id=${esc(shop.id)}" class="shop-card">
           <div class="shop-card-banner">${avatar}</div>
           <div class="shop-card-body">
-            <h3>${
+            <h3>${esc(shop.name)}</h3>
+            <div class="meta">${esc(shop.category)} · ${esc(shop.serviceArea)}</div>
+            <div class="desc">${esc(shop.description)}</div>
+            <div class="products-count">${productCount} products available →</div>
+          </div>
+        </a>
+      `;
+    }).join('');
+  }
+
+  searchInput.addEventListener('input', e => render(e.target.value));
+  render();
+})();
