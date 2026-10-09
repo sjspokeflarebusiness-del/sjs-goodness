@@ -2,14 +2,16 @@
    ANALYTICS PAGE
    ============================================ */
 
-const currentShop = initDashboard('analytics');
+if (window.location.pathname.endsWith('analytics.html')) {
+  const currentShop = initDashboard('analytics');
+  if (currentShop) renderAnalytics(currentShop);
+}
 
-if (currentShop) {
+function renderAnalytics(currentShop) {
   const orders = DB.getOrdersForShop(currentShop.id).filter(o => o.orderStatus !== 'cancelled');
   const expenses = DB.getExpensesForShop(currentShop.id);
   const products = DB.getProductsForShop(currentShop.id);
 
-  // Revenue by month (last 6)
   const monthly = {};
   orders.forEach(o => {
     const m = (o.createdAt || '').slice(0, 7);
@@ -22,11 +24,9 @@ if (currentShop) {
   const revenueData = months.map(m => monthly[m].revenue);
   const profitData = months.map(m => monthly[m].revenue - monthly[m].cogs);
 
-  // Expense by category
   const expByCat = {};
   expenses.forEach(e => { expByCat[e.category] = (expByCat[e.category] || 0) + Number(e.amount); });
 
-  // Top products
   const salesByProduct = {};
   orders.forEach(o => (o.items || []).forEach(i => {
     salesByProduct[i.name] = (salesByProduct[i.name] || 0) + i.qty;
@@ -61,16 +61,18 @@ if (currentShop) {
     </div>
   `;
 
-  // Chart
-  new Chart(document.getElementById('revenueChart'), {
-    type: 'line',
-    data: {
-      labels: months.length ? months : ['No data'],
-      datasets: [
-        { label: 'Revenue', data: revenueData, borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.1)', tension: 0.3, fill: true },
-        { label: 'Gross Profit', data: profitData, borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.1)', tension: 0.3, fill: true }
-      ]
-    },
-    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
-  });
+  const canvas = document.getElementById('revenueChart');
+  if (canvas) {
+    new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: months.length ? months : ['No data'],
+        datasets: [
+          { label: 'Revenue', data: revenueData, borderColor: '#fc8019', backgroundColor: 'rgba(252,128,25,0.1)', tension: 0.3, fill: true },
+          { label: 'Gross Profit', data: profitData, borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.1)', tension: 0.3, fill: true }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
+    });
+  }
 }
