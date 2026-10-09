@@ -17,7 +17,7 @@
   </div>
 </header>
 
-<div id="shop-header" class="container" style="padding:2rem 1rem;"></div>
+<div id="shop-hero" class="shop-hero"></div>
 
 <main class="container main">
   <div class="shop-detail">
@@ -27,8 +27,8 @@
       <div id="no-products" class="empty-state" style="display:none;">No products available.</div>
     </div>
     <div>
-      <div id="cart-box" class="cart-box">
-        <h3 style="margin-bottom:1rem;">Your Cart</h3>
+      <div class="cart-box">
+        <div class="cart-title">🛒 Your Cart</div>
         <div id="cart-items"><p class="text-muted text-sm">Cart is empty</p></div>
         <div id="cart-summary" style="display:none;">
           <div class="cart-total"><span>Total</span><span id="cart-total">₹0</span></div>
@@ -43,6 +43,7 @@
 
 <script src="js/utils.js"></script>
 <script src="js/db.js"></script>
+<script src="js/categories.js"></script>
 <script src="js/shop.js"></script>
 </body>
 </html>
