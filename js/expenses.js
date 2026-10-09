@@ -2,10 +2,15 @@
    EXPENSES PAGE
    ============================================ */
 
-const currentShop = initDashboard('expenses');
+let expShop;
+
+if (window.location.pathname.endsWith('expenses.html')) {
+  expShop = initDashboard('expenses');
+  if (expShop) renderExpenses();
+}
 
 function renderExpenses() {
-  const expenses = DB.getExpensesForShop(currentShop.id);
+  const expenses = DB.getExpensesForShop(expShop.id);
   const total = expenses.reduce((s, e) => s + Number(e.amount), 0);
   const c = document.getElementById('content');
 
@@ -40,7 +45,7 @@ function openExpenseForm() {
       <div class="modal">
         <div class="modal-header">
           <h2>Add Expense</h2>
-          <button class="modal-close" onclick="closeExpenseModal()">×</button>
+          <button class="modal-close" onclick="document.getElementById('modal-root').innerHTML=''">×</button>
         </div>
         <div class="form-group"><label>Title *</label><input id="e-title" class="form-input"></div>
         <div class="form-group"><label>Category</label>
@@ -53,14 +58,12 @@ function openExpenseForm() {
         <div class="form-group"><label>Date</label><input type="date" id="e-date" class="form-input" value="${today()}"></div>
         <div class="form-group"><label>Notes</label><input id="e-notes" class="form-input"></div>
         <div class="modal-footer">
-          <button class="btn btn-ghost" onclick="closeExpenseModal()">Cancel</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('modal-root').innerHTML=''">Cancel</button>
           <button class="btn btn-primary" onclick="saveExpense()">Save</button>
         </div>
       </div>
     </div>`;
 }
-
-function closeExpenseModal() { document.getElementById('modal-root').innerHTML = ''; }
 
 function saveExpense() {
   const title = document.getElementById('e-title').value.trim();
@@ -68,7 +71,7 @@ function saveExpense() {
   if (!title || !amount) return alert('Title and amount required.');
   const all = DB.getExpenses();
   all.push({
-    id: uid(), shopId: currentShop.id,
+    id: uid(), shopId: expShop.id,
     title, amount,
     category: document.getElementById('e-category').value,
     date: document.getElementById('e-date').value,
@@ -76,7 +79,7 @@ function saveExpense() {
     createdAt: new Date().toISOString()
   });
   DB.saveExpenses(all);
-  closeExpenseModal();
+  document.getElementById('modal-root').innerHTML = '';
   renderExpenses();
 }
 
@@ -85,6 +88,3 @@ function deleteExpense(id) {
   DB.saveExpenses(DB.getExpenses().filter(e => e.id !== id));
   renderExpenses();
 }
-
-if (currentShop) renderExpenses();
-
