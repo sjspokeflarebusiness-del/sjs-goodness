@@ -583,4 +583,609 @@ function OwnerDashboard({ navigate, logout, session }) {
   if (!shop) return <div className="p-8">Shop not found</div>;
 
   const revenue = orders.filter(o => o.orderStatus !== 'cancelled').reduce((s, o) => s + o.total, 0);
-  const cogs = orders.filter(o => o.orderStatus !== 'cancelled
+  const cogs = orders.filter(o => o.orderStatus !== 'cancelled').reduce((s, o) => s + (o.items || []).reduce((x, i) => x + (i.cost || 0) * i.qty, 0), 0);
+  const otherExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const grossProfit = revenue - cogs;
+  const netProfit = grossProfit - otherExpenses;
+
+  const pending = orders.filter(o => ['placed', 'confirmed', 'preparing', 'out_for_delivery'].includes(o.orderStatus)).length;
+  const lowStock = products.filter(p => p.stock <= (p.lowStockAt || 5));
+
+  return (
+    <div className="min-h-screen flex">
+      <Sidebar current="home" navigate={navigate} logout={logout} />
+      <div className="flex-1">
+        <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">{shop.name}</h1>
+            <p className="text-xs text-gray-500">Business Dashboard</p>
+          </div>
+          <a href={`#/shop/${shop.id}`} target="_blank" className="text-sm text-blue-600 hover:underline">View Public Shop ↗</a>
+        </header>
+
+        <main className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Metric label="Total Revenue" value={fmt(revenue)} tint="from-green-400 to-emerald-500" />
+            <Metric label="Gross Profit" value={fmt(grossProfit)} tint="from-blue-400 to-indigo-500" />
+            <Metric label="Net Profit" value={fmt(netProfit)} tint="from-purple-400 to-pink-500" />
+            <Metric label="Orders" value={orders.length} tint="from-orange-400 to-red-500" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <StatCard title="Pending Orders" value={pending} hint="Need action" />
+            <StatCard title="Customers" value={customers.length} hint="Total unique" />
+            <StatCard title="Low Stock Items" value={lowStock.length} hint="Restock soon" />
+          </div>
+
+          <div className="bg-white rounded-xl border mt-6">
+            <div className="p-5 border-b flex justify-between items-center">
+              <h2 className="font-bold">Recent Orders</h2>
+              <a href="#/dashboard/orders" className="text-sm text-blue-600 hover:underline">View all →</a>
+            </div>
+            {orders.length === 0 ?
+              <div className="p-8 text-center text-gray-500 text-sm">No orders yet. Share your shop link!</div> :
+              <div className="divide-y">
+                {orders.slice().reverse().slice(0, 5).map(o => (
+                  <div key={o.id} className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-sm">#{o.orderNumber} · {o.customerName}</p>
+                      <p className="text-xs text-gray-500">{new Date(o.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">{fmt(o.total)}</p>
+                      <StatusBadge status={o.orderStatus} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            }
+          </div>
+
+          {lowStock.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-5 mt-6">
+              <h3 className="font-bold text-red-900 mb-2">⚠️ Low Stock Alert</h3>
+              <ul className="text-sm text-red-700 space-y-1">
+                {lowStock.map(p => <li key={p.id}>{p.name} — {p.stock} {p.unit} left</li>)}
+              </ul>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function Metric({ label, value, tint }) {
+  return (
+    <div className={`bg-gradient-to-br ${tint} text-white rounded-xl p-5 shadow`}>
+      <p className="text-xs opacity-90">{label}</p>
+      <p className="text-2xl font-bold mt-1">{value}</p>
+    </div>
+  );
+}
+
+function StatCard({ title, value, hint }) {
+  return (
+    <div className="bg-white border rounded-xl p-5">
+      <p className="text-xs text-gray-500">{title}</p>
+      <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+      <p className="text-xs text-gray-400 mt-1">{hint}</p>
+    </div>
+  );
+}
+
+// ============================================
+// OWNER PRODUCTS
+// ============================================
+function OwnerProducts({ navigate, session }) {
+  const { products, reload } = useShopData(session);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({ name: '', description: '', price: '', cost: '', stock: '', unit: 'kg', category: '', image: '', lowStockAt: 5, isPublished: true, isAvailable: true });
+
+  function openNew() {
+    setEditing(null);
+    setForm({ name: '', description: '', price: '', cost: '', stock: '', unit: 'kg', category: '', image: '', lowStockAt: 5, isPublished: true, isAvailable: true });
+    setShowForm(true);
+  }
+  function openEdit(p) {
+    setEditing(p);
+    setForm({ ...p });
+    setShowForm(true);
+  }
+  function save() {
+    if (!form.name || !form.price) return alert('Name and selling price are required');
+    const all = DB.getProducts();
+    if (editing) {
+      const idx = all.findIndex(x => x.id === editing.id);
+      all[idx] = { ...editing, ...form, price: Number(form.price), cost: Number(form.cost || 0), stock: Number(form.stock || 0), lowStockAt: Number(form.lowStockAt || 5) };
+    } else {
+      all.push({
+        id: uid(), shopId: session.shopId, ...form,
+        price: Number(form.price), cost: Number(form.cost || 0), stock: Number(form.stock || 0),
+        lowStockAt: Number(form.lowStockAt || 5), createdAt: new Date().toISOString()
+      });
+    }
+    DB.saveProducts(all);
+    setShowForm(false);
+    reload();
+  }
+  function remove(id) {
+    if (!confirm('Delete this product?')) return;
+    DB.saveProducts(DB.getProducts().filter(p => p.id !== id));
+    reload();
+  }
+
+  return (
+    <div className="min-h-screen flex">
+      <Sidebar current="products" navigate={navigate} logout={() => { DB.clearSession(); navigate('/'); }} />
+      <div className="flex-1">
+        <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
+          <h1 className="text-xl font-bold">Products</h1>
+          <button onClick={openNew} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">+ Add Product</button>
+        </header>
+        <main className="p-6">
+          {products.length === 0 ?
+            <div className="bg-white rounded-xl p-12 text-center">
+              <p className="text-gray-500 mb-4">No products yet.</p>
+              <button onClick={openNew} className="bg-blue-600 text-white px-4 py-2 rounded-lg">Add Your First Product</button>
+            </div> :
+            <div className="bg-white rounded-xl border overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50 text-xs text-gray-600">
+                  <tr>
+                    <th className="text-left p-3">Product</th>
+                    <th className="text-left p-3">Cost</th>
+                    <th className="text-left p-3">Price</th>
+                    <th className="text-left p-3">Margin</th>
+                    <th className="text-left p-3">Stock</th>
+                    <th className="text-left p-3">Status</th>
+                    <th className="text-right p-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y text-sm">
+                  {products.map(p => {
+                    const margin = p.price - p.cost;
+                    const pct = p.price > 0 ? ((margin / p.price) * 100).toFixed(0) : 0;
+                    return (
+                      <tr key={p.id}>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            {p.image && <img src={p.image} className="w-9 h-9 rounded object-cover" />}
+                            <div>
+                              <p className="font-medium">{p.name}</p>
+                              <p className="text-xs text-gray-500">{p.category || '—'}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3 text-gray-600">{fmt(p.cost)}</td>
+                        <td className="p-3 font-medium">{fmt(p.price)}</td>
+                        <td className="p-3">
+                          <span className={margin > 0 ? 'text-green-600' : 'text-red-500'}>{fmt(margin)} ({pct}%)</span>
+                        </td>
+                        <td className="p-3">
+                          <span className={p.stock <= (p.lowStockAt || 5) ? 'text-red-600 font-medium' : ''}>{p.stock} {p.unit}</span>
+                        </td>
+                        <td className="p-3">
+                          {p.isPublished ? <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">Published</span> :
+                            <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">Draft</span>}
+                        </td>
+                        <td className="p-3 text-right">
+                          <button onClick={() => openEdit(p)} className="text-blue-600 mr-3 text-sm">Edit</button>
+                          <button onClick={() => remove(p.id)} className="text-red-600 text-sm">Delete</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          }
+        </main>
+      </div>
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full my-8">
+            <h2 className="font-bold text-lg mb-4">{editing ? 'Edit Product' : 'Add Product'}</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <input placeholder="Name *" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="col-span-2 px-3 py-2 border rounded-lg" />
+              <textarea placeholder="Description" value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })} className="col-span-2 px-3 py-2 border rounded-lg" rows={2}></textarea>
+              <input placeholder="Category" value={form.category || ''} onChange={e => setForm({ ...form, category: e.target.value })} className="px-3 py-2 border rounded-lg" />
+              <input placeholder="Unit (kg/pc)" value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} className="px-3 py-2 border rounded-lg" />
+              <input type="number" placeholder="Purchase Cost ₹" value={form.cost} onChange={e => setForm({ ...form, cost: e.target.value })} className="px-3 py-2 border rounded-lg" />
+              <input type="number" placeholder="Selling Price ₹ *" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="px-3 py-2 border rounded-lg" />
+              <input type="number" placeholder="Stock Qty" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} className="px-3 py-2 border rounded-lg" />
+              <input type="number" placeholder="Low Stock Alert At" value={form.lowStockAt} onChange={e => setForm({ ...form, lowStockAt: e.target.value })} className="px-3 py-2 border rounded-lg" />
+              <input placeholder="Image URL" value={form.image || ''} onChange={e => setForm({ ...form, image: e.target.value })} className="col-span-2 px-3 py-2 border rounded-lg" />
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.isPublished} onChange={e => setForm({ ...form, isPublished: e.target.checked })} /> Publish on marketplace</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.isAvailable} onChange={e => setForm({ ...form, isAvailable: e.target.checked })} /> In stock</label>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={() => setShowForm(false)} className="flex-1 border py-2 rounded-lg">Cancel</button>
+              <button onClick={save} className="flex-1 bg-blue-600 text-white py-2 rounded-lg">{editing ? 'Save Changes' : 'Add Product'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// OWNER ORDERS
+// ============================================
+function OwnerOrders({ navigate, session }) {
+  const { orders, reload } = useShopData(session);
+  const [filter, setFilter] = useState('all');
+  const [openOrder, setOpenOrder] = useState(null);
+
+  function updateStatus(order, newStatus) {
+    const all = DB.getOrders();
+    const idx = all.findIndex(o => o.id === order.id);
+    all[idx].orderStatus = newStatus;
+    all[idx].updatedAt = new Date().toISOString();
+    DB.saveOrders(all);
+    reload();
+    setOpenOrder({ ...order, orderStatus: newStatus });
+  }
+  function updatePayment(order, newStatus) {
+    const all = DB.getOrders();
+    const idx = all.findIndex(o => o.id === order.id);
+    all[idx].paymentStatus = newStatus;
+    if (newStatus === 'paid') all[idx].amountPaid = order.total;
+    DB.saveOrders(all);
+    reload();
+    setOpenOrder({ ...order, paymentStatus: newStatus, amountPaid: newStatus === 'paid' ? order.total : order.amountPaid });
+  }
+
+  const filtered = filter === 'all' ? orders : orders.filter(o => o.orderStatus === filter);
+
+  return (
+    <div className="min-h-screen flex">
+      <Sidebar current="orders" navigate={navigate} logout={() => { DB.clearSession(); navigate('/'); }} />
+      <div className="flex-1">
+        <header className="bg-white border-b px-6 py-4">
+          <h1 className="text-xl font-bold">Orders</h1>
+          <div className="flex gap-2 mt-3 overflow-x-auto">
+            {['all', 'placed', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'].map(f => (
+              <button key={f} onClick={() => setFilter(f)}
+                className={`px-3 py-1.5 text-xs rounded-full whitespace-nowrap ${filter === f ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                {f.replace(/_/g, ' ')} {f === 'all' ? `(${orders.length})` : `(${orders.filter(o => o.orderStatus === f).length})`}
+              </button>
+            ))}
+          </div>
+        </header>
+        <main className="p-6">
+          {filtered.length === 0 ? <div className="bg-white rounded-xl p-12 text-center text-gray-500">No orders in this filter.</div> :
+            <div className="bg-white rounded-xl border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-xs text-gray-600">
+                  <tr>
+                    <th className="text-left p-3">Order</th>
+                    <th className="text-left p-3">Customer</th>
+                    <th className="text-left p-3">Total</th>
+                    <th className="text-left p-3">Status</th>
+                    <th className="text-left p-3">Payment</th>
+                    <th className="text-right p-3">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filtered.slice().reverse().map(o => (
+                    <tr key={o.id}>
+                      <td className="p-3">
+                        <p className="font-medium">#{o.orderNumber}</p>
+                        <p className="text-xs text-gray-500">{new Date(o.createdAt).toLocaleString()}</p>
+                      </td>
+                      <td className="p-3">
+                        <p>{o.customerName}</p>
+                        <p className="text-xs text-gray-500">{o.customerPhone}</p>
+                      </td>
+                      <td className="p-3 font-medium">{fmt(o.total)}</td>
+                      <td className="p-3"><StatusBadge status={o.orderStatus} /></td>
+                      <td className="p-3"><PayBadge status={o.paymentStatus} /></td>
+                      <td className="p-3 text-right">
+                        <button onClick={() => setOpenOrder(o)} className="text-blue-600 text-sm">Manage</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          }
+        </main>
+      </div>
+
+      {openOrder && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full">
+            <div className="flex justify-between mb-4">
+              <h2 className="font-bold text-lg">Order #{openOrder.orderNumber}</h2>
+              <button onClick={() => setOpenOrder(null)} className="text-gray-400">✕</button>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-4 mb-4 text-sm space-y-1">
+              <p><strong>{openOrder.customerName}</strong> · {openOrder.customerPhone}</p>
+              {openOrder.deliveryAddress && <p className="text-gray-600">{openOrder.deliveryAddress}</p>}
+              {openOrder.notes && <p className="text-gray-600 italic">"{openOrder.notes}"</p>}
+            </div>
+            <div className="mb-4">
+              <p className="text-xs text-gray-500 mb-2">Items</p>
+              {(openOrder.items || []).map((it, i) => (
+                <div key={i} className="flex justify-between text-sm py-1 border-b last:border-0">
+                  <span>{it.name} × {it.qty}</span>
+                  <span>{fmt(it.total)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between font-bold mt-2 pt-2 border-t">
+                <span>Total</span><span>{fmt(openOrder.total)}</span>
+              </div>
+            </div>
+            <div className="mb-3">
+              <p className="text-xs text-gray-500 mb-2">Order Status</p>
+              <div className="flex flex-wrap gap-1">
+                {['placed', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'].map(s => (
+                  <button key={s} onClick={() => updateStatus(openOrder, s)}
+                    className={`text-xs px-2 py-1 rounded ${openOrder.orderStatus === s ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>
+                    {s.replace(/_/g, ' ')}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-2">Payment Status</p>
+              <div className="flex flex-wrap gap-1">
+                {['unpaid', 'partially_paid', 'paid', 'refunded'].map(s => (
+                  <button key={s} onClick={() => updatePayment(openOrder, s)}
+                    className={`text-xs px-2 py-1 rounded ${openOrder.paymentStatus === s ? 'bg-green-600 text-white' : 'bg-gray-100'}`}>
+                    {s.replace(/_/g, ' ')}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// OWNER CUSTOMERS
+// ============================================
+function OwnerCustomers({ navigate, session }) {
+  const { customers, orders } = useShopData(session);
+
+  return (
+    <div className="min-h-screen flex">
+      <Sidebar current="customers" navigate={navigate} logout={() => { DB.clearSession(); navigate('/'); }} />
+      <div className="flex-1">
+        <header className="bg-white border-b px-6 py-4"><h1 className="text-xl font-bold">Customers</h1></header>
+        <main className="p-6">
+          {customers.length === 0 ? <div className="bg-white rounded-xl p-12 text-center text-gray-500">No customers yet.</div> :
+            <div className="bg-white rounded-xl border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-xs text-gray-600">
+                  <tr>
+                    <th className="text-left p-3">Name</th>
+                    <th className="text-left p-3">Phone</th>
+                    <th className="text-left p-3">Orders</th>
+                    <th className="text-left p-3">Total Spent</th>
+                    <th className="text-left p-3">Last Order</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {customers.map(c => (
+                    <tr key={c.id}>
+                      <td className="p-3 font-medium">{c.name}</td>
+                      <td className="p-3">{c.phone}</td>
+                      <td className="p-3">{c.orderCount || 0}</td>
+                      <td className="p-3 font-medium">{fmt(c.totalSpent || 0)}</td>
+                      <td className="p-3 text-gray-500">{c.lastOrderAt ? new Date(c.lastOrderAt).toLocaleDateString() : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          }
+        </main>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// OWNER EXPENSES
+// ============================================
+function OwnerExpenses({ navigate, session }) {
+  const { expenses, reload } = useShopData(session);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ title: '', category: 'Stock Purchase', amount: '', date: today(), notes: '' });
+
+  function save() {
+    if (!form.title || !form.amount) return alert('Title and amount required');
+    const all = DB.getExpenses();
+    all.push({ id: uid(), shopId: session.shopId, ...form, amount: Number(form.amount), createdAt: new Date().toISOString() });
+    DB.saveExpenses(all);
+    setForm({ title: '', category: 'Stock Purchase', amount: '', date: today(), notes: '' });
+    setShowForm(false);
+    reload();
+  }
+  function remove(id) {
+    if (!confirm('Delete this expense?')) return;
+    DB.saveExpenses(DB.getExpenses().filter(e => e.id !== id));
+    reload();
+  }
+
+  const total = expenses.reduce((s, e) => s + Number(e.amount), 0);
+
+  return (
+    <div className="min-h-screen flex">
+      <Sidebar current="expenses" navigate={navigate} logout={() => { DB.clearSession(); navigate('/'); }} />
+      <div className="flex-1">
+        <header className="bg-white border-b px-6 py-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-xl font-bold">Expenses</h1>
+            <p className="text-xs text-gray-500">Total: {fmt(total)}</p>
+          </div>
+          <button onClick={() => setShowForm(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">+ Add Expense</button>
+        </header>
+        <main className="p-6">
+          {expenses.length === 0 ? <div className="bg-white rounded-xl p-12 text-center text-gray-500">No expenses recorded.</div> :
+            <div className="bg-white rounded-xl border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-xs text-gray-600">
+                  <tr>
+                    <th className="text-left p-3">Title</th>
+                    <th className="text-left p-3">Category</th>
+                    <th className="text-left p-3">Date</th>
+                    <th className="text-left p-3">Amount</th>
+                    <th className="text-right p-3"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {expenses.slice().reverse().map(e => (
+                    <tr key={e.id}>
+                      <td className="p-3 font-medium">{e.title}</td>
+                      <td className="p-3 text-gray-600">{e.category}</td>
+                      <td className="p-3 text-gray-500">{e.date}</td>
+                      <td className="p-3 font-medium">{fmt(e.amount)}</td>
+                      <td className="p-3 text-right"><button onClick={() => remove(e.id)} className="text-red-600 text-sm">Delete</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          }
+        </main>
+      </div>
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+            <h2 className="font-bold text-lg mb-4">Add Expense</h2>
+            <div className="space-y-3">
+              <input placeholder="Title *" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+              <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full px-3 py-2 border rounded-lg">
+                {['Stock Purchase', 'Packaging', 'Transport', 'Rent', 'Utilities', 'Marketing', 'Other'].map(c => <option key={c}>{c}</option>)}
+              </select>
+              <input type="number" placeholder="Amount ₹ *" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+              <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+              <textarea placeholder="Notes" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows={2}></textarea>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={() => setShowForm(false)} className="flex-1 border py-2 rounded-lg">Cancel</button>
+              <button onClick={save} className="flex-1 bg-blue-600 text-white py-2 rounded-lg">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// OWNER ANALYTICS
+// ============================================
+function OwnerAnalytics({ navigate, session }) {
+  const { orders, expenses, products } = useShopData(session);
+
+  const monthly = useMemo(() => {
+    const map = {};
+    orders.filter(o => o.orderStatus !== 'cancelled').forEach(o => {
+      const m = (o.createdAt || '').slice(0, 7);
+      if (!map[m]) map[m] = { revenue: 0, cogs: 0, orders: 0 };
+      map[m].revenue += o.total;
+      map[m].cogs += (o.items || []).reduce((s, i) => s + (i.cost || 0) * i.qty, 0);
+      map[m].orders++;
+    });
+    return Object.entries(map).sort().slice(-6).map(([k, v]) => ({ month: k, ...v }));
+  }, [orders]);
+
+  const expenseByCategory = useMemo(() => {
+    const map = {};
+    expenses.forEach(e => { map[e.category] = (map[e.category] || 0) + Number(e.amount); });
+    return Object.entries(map).map(([k, v]) => ({ category: k, amount: v }));
+  }, [expenses]);
+
+  const productSales = useMemo(() => {
+    const map = {};
+    orders.forEach(o => (o.items || []).forEach(i => {
+      map[i.name] = (map[i.name] || 0) + i.qty;
+    }));
+    return Object.entries(map).map(([k, v]) => ({ name: k, qty: v })).sort((a, b) => b.qty - a.qty);
+  }, [orders]);
+
+  const maxRevenue = Math.max(...monthly.map(m => m.revenue), 1);
+
+  return (
+    <div className="min-h-screen flex">
+      <Sidebar current="analytics" navigate={navigate} logout={() => { DB.clearSession(); navigate('/'); }} />
+      <div className="flex-1">
+        <header className="bg-white border-b px-6 py-4"><h1 className="text-xl font-bold">Analytics</h1></header>
+        <main className="p-6 space-y-6">
+          <div className="bg-white rounded-xl border p-5">
+            <h2 className="font-bold mb-4">Revenue (Last 6 Months)</h2>
+            {monthly.length === 0 ? <p className="text-gray-500 text-sm">No data yet.</p> :
+              <div className="space-y-3">
+                {monthly.map(m => (
+                  <div key={m.month}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-medium">{m.month}</span>
+                      <span>{fmt(m.revenue)} · {m.orders} orders</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-blue-400 to-blue-600" style={{ width: `${(m.revenue / maxRevenue) * 100}%` }}></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            }
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-white rounded-xl border p-5">
+              <h2 className="font-bold mb-4">Top Products</h2>
+              {productSales.length === 0 ? <p className="text-gray-500 text-sm">No sales yet.</p> :
+                <div className="space-y-2">
+                  {productSales.slice(0, 5).map((p, i) => (
+                    <div key={p.name} className="flex justify-between text-sm">
+                      <span>{i + 1}. {p.name}</span>
+                      <span className="font-medium">{p.qty} sold</span>
+                    </div>
+                  ))}
+                </div>
+              }
+            </div>
+            <div className="bg-white rounded-xl border p-5">
+              <h2 className="font-bold mb-4">Expenses by Category</h2>
+              {expenseByCategory.length === 0 ? <p className="text-gray-500 text-sm">No expenses.</p> :
+                <div className="space-y-2">
+                  {expenseByCategory.map(e => (
+                    <div key={e.category} className="flex justify-between text-sm">
+                      <span>{e.category}</span>
+                      <span className="font-medium">{fmt(e.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              }
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border p-5">
+            <h2 className="font-bold mb-4">Inventory Value (at cost)</h2>
+            <p className="text-2xl font-bold text-gray-900">{fmt(products.reduce((s, p) => s + p.cost * p.stock, 0))}</p>
+            <p className="text-xs text-gray-500 mt-1">Total value of stock on hand</p>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// MOUNT
+// ============================================
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
