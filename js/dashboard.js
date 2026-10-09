@@ -2,49 +2,57 @@
    SHARED DASHBOARD BOILERPLATE
    ============================================ */
 
-// Every owner page calls this first
 function initDashboard(pageKey) {
   const shop = Auth.requireLogin();
   if (!shop) return null;
 
+  // If shop is pending approval, redirect to pending page (except on profile page)
+  if (shop.status === 'pending' && pageKey !== 'profile') {
+    window.location.href = 'pending.html';
+    return null;
+  }
+
   document.getElementById('shop-name').textContent = shop.name;
 
-  // Sidebar nav
   const nav = document.getElementById('sidebar-nav');
   if (nav) {
     const items = [
-      { key: 'dashboard', label: 'Overview', icon: 'bar-chart-3', href: 'dashboard.html' },
-      { key: 'products', label: 'Products', icon: 'package', href: 'products.html' },
-      { key: 'orders', label: 'Orders', icon: 'shopping-cart', href: 'orders.html' },
-      { key: 'customers', label: 'Customers', icon: 'users', href: 'customers.html' },
-      { key: 'expenses', label: 'Expenses', icon: 'wallet', href: 'expenses.html' },
-      { key: 'analytics', label: 'Analytics', icon: 'trending-up', href: 'analytics.html' }
+      { key: 'dashboard', label: 'Overview', icon: '📊', href: 'dashboard.html' },
+      { key: 'products', label: 'Products', icon: '📦', href: 'products.html' },
+      { key: 'orders', label: 'Orders', icon: '🛒', href: 'orders.html' },
+      { key: 'customers', label: 'Customers', icon: '👥', href: 'customers.html' },
+      { key: 'expenses', label: 'Expenses', icon: '💰', href: 'expenses.html' },
+      { key: 'analytics', label: 'Analytics', icon: '📈', href: 'analytics.html' },
+      { key: 'profile', label: 'Shop Profile', icon: '🏪', href: 'profile.html' }
     ];
     nav.innerHTML = items.map(it => `
       <a href="${it.href}" class="sidebar-link ${it.key === pageKey ? 'active' : ''}">
-        <i data-lucide="${it.icon}" style="width:18px;height:18px;"></i> ${it.label}
+        <span>${it.icon}</span> ${it.label}
       </a>
     `).join('') + `
       <button class="sidebar-link sidebar-logout" onclick="Auth.logout()">
-        <i data-lucide="log-out" style="width:18px;height:18px;"></i> Logout
+        <span>🚪</span> Logout
       </button>
     `;
-    if (window.lucide) lucide.createIcons();
   }
 
-  // Public shop link
   const viewLink = document.getElementById('view-shop-link');
   if (viewLink) {
-    viewLink.innerHTML = `<a href="shop.html?id=${esc(shop.id)}" target="_blank" class="text-sm" style="color:var(--blue);text-decoration:none;">View Public Shop ↗</a>`;
+    viewLink.innerHTML = `<a href="shop.html?id=${esc(shop.id)}" target="_blank" class="btn btn-ghost btn-sm">View Public Shop ↗</a>`;
   }
+
+  // Notification bell
+  const notifContainer = document.getElementById('notif-container');
+  if (notifContainer) renderNotificationBell('notif-container', shop.id);
 
   return shop;
 }
 
 /* ============================================
-   DASHBOARD OVERVIEW PAGE
+   DASHBOARD OVERVIEW
    ============================================ */
 (function () {
+  if (!document.getElementById('content') || !window.location.pathname.endsWith('dashboard.html')) return;
   const shop = initDashboard('dashboard');
   if (!shop) return;
 
@@ -80,7 +88,7 @@ function initDashboard(pageKey) {
     <div class="table-card">
       <div class="table-card-header">
         <h2>Recent Orders</h2>
-        <a href="orders.html" class="text-sm" style="color:var(--blue);">View all →</a>
+        <a href="orders.html" class="text-sm" style="color:var(--orange);text-decoration:none;font-weight:600;">View all →</a>
       </div>
       ${orders.length === 0
         ? '<div style="padding:2rem;text-align:center;color:var(--gray-500);" class="text-sm">No orders yet. Share your shop link!</div>'
