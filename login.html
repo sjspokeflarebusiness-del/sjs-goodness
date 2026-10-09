@@ -1,1 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Login — SJS Goodness</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="form-container">
+  <h1 class="form-title">Owner Login</h1>
+  <p class="form-subtitle">Sign in to your private business dashboard.</p>
+  <div id="error" class="form-error" style="display:none;"></div>
 
+  <form id="login-form">
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="email" class="form-input" required>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="password" class="form-input" required>
+    </div>
+    <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+  </form>
+
+  <div class="form-info">
+    <strong>Demo account:</strong><br>
+    Email: <code>mom@sjs.com</code><br>
+    Password: <code>sjs12345</code>
+  </div>
+
+  <p class="form-footer">New shop? <a href="register.html">Register here</a></p>
+  <p class="form-footer"><a href="index.html" style="color:#999;">← Back to marketplace</a></p>
+</div>
+
+<script src="js/utils.js"></script>
+<script src="js/db.js"></script>
+<script src="js/auth.js"></script>
+<script>
+document.getElementById('login-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const shop = Auth.login(email, password);
+  if (!shop) {
+    const err = document.getElementById('error');
+    err.textContent = 'Invalid email or password.';
+    err.style.display = 'block';
+    return;
+  }
+  window.location.href = 'dashboard.html';
+});
+</script>
+</body>
+</html>
