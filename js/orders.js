@@ -11,7 +11,6 @@ function statusBadge(s) {
   };
   return `<span class="badge ${map[s] || 'badge-gray'}">${s.replace(/_/g, ' ')}</span>`;
 }
-
 function payBadge(s) {
   const map = { unpaid: 'badge-red', partially_paid: 'badge-yellow', paid: 'badge-green', refunded: 'badge-gray' };
   return `<span class="badge ${map[s] || 'badge-gray'}">${s.replace(/_/g, ' ')}</span>`;
@@ -63,12 +62,13 @@ function openOrder(id) {
       <div class="modal">
         <div class="modal-header">
           <h2>Order #${esc(o.orderNumber)}</h2>
-          <button class="modal-close" onclick="closeModal()">×</button>
+          <button class="modal-close" onclick="document.getElementById('modal-root').innerHTML=''">×</button>
         </div>
-        <div style="background:var(--gray-50);padding:0.85rem;border-radius:8px;margin-bottom:1rem;font-size:0.9rem;">
+        <div style="background:var(--gray-50);padding:0.85rem;border-radius:10px;margin-bottom:1rem;font-size:0.9rem;">
           <div><strong>${esc(o.customerName)}</strong> · ${esc(o.customerPhone)}</div>
           ${o.deliveryAddress ? `<div class="text-muted text-sm">${esc(o.deliveryAddress)}</div>` : ''}
           ${o.notes ? `<div class="text-muted text-sm" style="font-style:italic;">"${esc(o.notes)}"</div>` : ''}
+          <a href="https://wa.me/91${esc((o.customerPhone||'').replace(/\\D/g,''))}" target="_blank" class="btn btn-success btn-sm mt-2">📱 WhatsApp Customer</a>
         </div>
         <div class="mb-4">
           ${(o.items || []).map(i => `
@@ -95,8 +95,6 @@ function openOrder(id) {
     </div>`;
 }
 
-function closeModal() { document.getElementById('modal-root').innerHTML = ''; }
-
 function updateOrderStatus(orderId, status) {
   const all = DB.getOrders();
   const idx = all.findIndex(o => o.id === orderId);
@@ -118,5 +116,7 @@ function updatePaymentStatus(orderId, status) {
   renderOrders();
 }
 
-currentShop = initDashboard('orders');
-if (currentShop) renderOrders();
+if (window.location.pathname.endsWith('orders.html')) {
+  currentShop = initDashboard('orders');
+  if (currentShop) renderOrders();
+}
