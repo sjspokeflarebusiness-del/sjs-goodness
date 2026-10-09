@@ -1,1 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shop — SJS Goodness</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="index.html" class="brand">
+      <div class="brand-logo">S</div>
+      <div><div class="brand-name">SJS Goodness</div><div class="brand-sub">Puducherry Marketplace</div></div>
+    </a>
+    <nav class="nav"><a href="index.html">← All shops</a></nav>
+  </div>
+</header>
 
+<div id="shop-header" class="container" style="padding:2rem 1rem;"></div>
+
+<main class="container main">
+  <div class="shop-detail">
+    <div>
+      <h2 class="section-title">Products</h2>
+      <div id="products-grid" class="products-grid"></div>
+      <div id="no-products" class="empty-state" style="display:none;">No products available.</div>
+    </div>
+    <div>
+      <div id="cart-box" class="cart-box">
+        <h3 style="margin-bottom:1rem;">Your Cart</h3>
+        <div id="cart-items"><p class="text-muted text-sm">Cart is empty</p></div>
+        <div id="cart-summary" style="display:none;">
+          <div class="cart-total"><span>Total</span><span id="cart-total">₹0</span></div>
+          <button id="checkout-btn" class="btn btn-success btn-block mt-3">Checkout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="checkout-modal"></div>
+
+<script src="js/utils.js"></script>
+<script src="js/db.js"></script>
+<script src="js/shop.js"></script>
+</body>
+</html>
