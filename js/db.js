@@ -1,5 +1,6 @@
 /* ============================================
-   SJS GOODNESS — DATABASE LAYER v2
+   SJS GOODNESS — DATABASE LAYER v3
+   Removes demo products, seeds only the Flaren shop.
    ============================================ */
 
 const DB = {
@@ -69,24 +70,24 @@ const DB = {
     DB.saveNotifications(all);
   },
 
-  // ============ SEED v2 ============
+  // ============ SEED v3 ============
+  // Only creates the Flaren shop owner account.
+  // No demo products. No fake data.
   seed() {
-    // Detect old seed and reset (fake data removal)
     const seededVersion = DB.get('seed_version', 0);
-    if (seededVersion < 2) {
-      // Wipe everything from v1
+    if (seededVersion < 3) {
+      // Wipe everything from old versions
       localStorage.removeItem('sjs_shops');
       localStorage.removeItem('sjs_products');
       localStorage.removeItem('sjs_orders');
       localStorage.removeItem('sjs_customers');
       localStorage.removeItem('sjs_expenses');
       localStorage.removeItem('sjs_notifications');
-      DB.set('seed_version', 2);
+      DB.set('seed_version', 3);
     }
 
-    // Only seed if truly empty
+    // Only seed the Flaren shop owner account (no products)
     if (DB.getShops().length === 0) {
-      // Flaren — admin's own shop (digital products)
       const flaren = {
         id: 'shop_flaren',
         ownerEmail: 'flaren@sjs.com',
@@ -105,11 +106,7 @@ const DB = {
         createdAt: new Date().toISOString()
       };
       DB.saveShops([flaren]);
-
-      DB.saveProducts([
-        { id: 'p_f1', shopId: 'shop_flaren', name: 'Website Design Service', description: 'Custom website built for you', price: 15000, cost: 0, stock: 5, unit: 'piece', category: 'Electronics', image: '', isAvailable: true, isPublished: true, lowStockAt: 1, createdAt: new Date().toISOString() },
-        { id: 'p_f2', shopId: 'shop_flaren', name: 'Logo Design', description: 'Professional brand logo', price: 3000, cost: 0, stock: 10, unit: 'piece', category: 'Electronics', image: '', isAvailable: true, isPublished: true, lowStockAt: 2, createdAt: new Date().toISOString() }
-      ]);
+      // NOTE: No products added here — the owner adds them via dashboard
     }
   }
 };
