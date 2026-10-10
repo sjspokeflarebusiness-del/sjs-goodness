@@ -89,8 +89,8 @@ const DB = {
       // Flaren — admin's own shop (digital products)
       const flaren = {
         id: 'shop_flaren',
-        ownerEmail: 'flaren@sjs.com',
-        ownerPassword: 'flaren123',
+        ownerEmail: 'sjspokeflarebusiness@gmail.com',
+        ownerPassword: 'SJS182011! Flaren',
         name: 'Flaren Digital',
         description: 'Digital products, websites, and design services by Flaren.',
         category: 'Electronics',
