@@ -118,13 +118,23 @@ function renderImageUploader(containerId, currentValue, onImage) {
 
 // ============ THEME ============
 function applyTheme() {
+  if (typeof DB === 'undefined') return; // DB not loaded yet
   const theme = DB.getTheme();
   if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
   else document.documentElement.removeAttribute('data-theme');
 }
 function toggleTheme() {
+  if (typeof DB === 'undefined') return;
   const next = DB.getTheme() === 'dark' ? 'light' : 'dark';
   DB.setTheme(next);
   applyTheme();
 }
-applyTheme();
+
+// Run after DOM + all scripts ready
+if (typeof DB !== 'undefined') {
+  applyTheme();
+} else {
+  window.addEventListener('DOMContentLoaded', () => {
+    if (typeof DB !== 'undefined') applyTheme();
+  });
+}
