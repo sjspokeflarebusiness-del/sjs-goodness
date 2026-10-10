@@ -1,16 +1,12 @@
 /* ============================================
-   MOBILE HAMBURGER MENU
+   MOBILE HAMBURGER MENU — auto-injects button
    ============================================ */
 
 function initHamburger() {
-  // Find sidebar
   const sidebar = document.querySelector('.sidebar');
-  if (!sidebar) {
-    console.warn('No sidebar found on this page');
-    return;
-  }
+  if (!sidebar) return;
 
-  // Find or create overlay
+  // Make sure overlay exists
   let overlay = document.querySelector('.sidebar-overlay');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -18,29 +14,34 @@ function initHamburger() {
     document.body.appendChild(overlay);
   }
 
-  // Add click handler to hamburger(s)
+  // Inject hamburger into dash-header (if not already there)
+  const dashHeader = document.querySelector('.dash-header');
+  if (dashHeader && !dashHeader.querySelector('.hamburger')) {
+    const btn = document.createElement('button');
+    btn.className = 'hamburger';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Menu');
+    btn.innerHTML = '☰';
+    dashHeader.insertBefore(btn, dashHeader.firstChild);
+  }
+
+  // Wire up (always re-wire to be safe)
   const hb = document.querySelector('.hamburger');
   if (hb) {
-    // Remove any existing handler to avoid double binding
-    hb.onclick = null;
     hb.onclick = function (e) {
       e.preventDefault();
       e.stopPropagation();
       sidebar.classList.toggle('open');
       overlay.classList.toggle('open');
-      console.log('Hamburger clicked. Sidebar open:', sidebar.classList.contains('open'));
     };
-  } else {
-    console.warn('No .hamburger element found. Did you add it to HTML?');
   }
 
-  // Close when overlay clicked
   overlay.onclick = function () {
     sidebar.classList.remove('open');
     overlay.classList.remove('open');
   };
 
-  // Close when any sidebar link clicked
+  // Close sidebar when any nav link clicked
   sidebar.querySelectorAll('a').forEach(a => {
     a.addEventListener('click', () => {
       sidebar.classList.remove('open');
@@ -49,10 +50,11 @@ function initHamburger() {
   });
 }
 
-// Run on DOM ready, and also after a delay (in case dashboard.js injects things late)
+// Run when DOM is ready + retry after a short delay (in case dashboard.js renders late)
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initHamburger);
 } else {
   initHamburger();
 }
-setTimeout(initHamburger, 500); // retry in case sidebar loaded late
+setTimeout(initHamburger, 800);
+setTimeout(initHamburger, 1500);
