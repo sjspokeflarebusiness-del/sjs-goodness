@@ -234,6 +234,26 @@ function deleteProduct(id) {
 }
 
 // ============================================
+// INITIALIZE — this sets currentShop
+// ============================================
+if (window.location.pathname.endsWith('products.html')) {
+  // Small delay to let dashboard.js load first
+  setTimeout(() => {
+    if (typeof initDashboard === 'function') {
+      currentShop = initDashboard('products');
+      if (currentShop) renderProducts();
+    } else {
+      console.error('dashboard.js did not load');
+    }
+  }, 100);
+}
+function deleteProduct(id) {
+  if (!confirm('Delete this product?')) return;
+  DB.saveProducts(DB.getProducts().filter(p => p.id !== id));
+  renderProducts();
+}
+
+// ============================================
 // INITIALIZE
 // ============================================
 if (window.location.pathname.endsWith('products.html')) {
