@@ -2,9 +2,12 @@
    PRODUCTS PAGE
    ============================================ */
 
-let currentShop, editingProduct = null;
+let currentShop = null;
+let editingProduct = null;
+let currentImageData = '';
 
 function renderProducts() {
+  if (!currentShop) return;
   const products = DB.getProductsForShop(currentShop.id);
   const c = document.getElementById('content');
 
@@ -28,8 +31,8 @@ function renderProducts() {
           const margin = p.price - p.cost;
           const pct = p.price > 0 ? ((margin / p.price) * 100).toFixed(0) : 0;
           const low = p.stock <= (p.lowStockAt || 5);
-          const thumb = p.image
-            ? `<img src="${esc(p.image)}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:0.5rem;" onerror="this.style.display='none'">`
+          const thumb = (typeof productImageTag === 'function')
+            ? `<div style="width:36px;height:36px;border-radius:6px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:0.5rem;">${productImageTag(p, '').replace('product-img', 'thumb-img')}</div>`
             : '';
           return `
             <tr>
@@ -50,13 +53,32 @@ function renderProducts() {
 }
 
 function openProductForm(id) {
-  editingProduct = id ? DB.getProducts().find(p => p.id === id) : null;
-  const p = editingProduct || { name: '', description: '', category: 'Groceries', price: '', cost: '', stock: '', unit: 'kg', image: '', lowStockAt: 5, isPublished: true, isAvailable: true };
+  if (!currentShop) {
+    alert('Shop not loaded. Please refresh.');
+    return;
+  }
 
-  const catOptions = getCategoryOptions();
-  const unitOptions = getUnitsForCategory(p.category);
+  // Find product if editing
+  if (id) {
+    editingProduct = DB.getProducts().find(p => p.id === id) || null;
+  } else {
+    editingProduct = null;
+  }
 
-  let imageData = p.image || '';
+  const p = editingProduct || {
+    name: '', description: '', category: 'Groceries', price: '', cost: '',
+    stock: '', unit: 'kg', image: '', lowStockAt: 5,
+    isPublished: true, isAvailable: true
+  };
+
+  const catOptions = (typeof getCategoryOptions === 'function')
+    ? getCategoryOptions()
+    : '<option value="General">General</option>';
+  const unitOptions = (typeof getUnitsForCategory === 'function')
+    ? getUnitsForCategory(p.category)
+    : ['piece', 'kg', 'L'];
+
+  currentImageData = p.image || '';
 
   document.getElementById('modal-root').innerHTML = `
     <div class="modal-overlay">
@@ -80,7 +102,7 @@ function openProductForm(id) {
           <label>Category</label>
           <select id="p-category" class="form-input" onchange="onCategoryChange()">
             <option value="">Select category…</option>
-            ${catOptions.replace(`value="${p.category}"`, `value="${p.category}" selected`)}
+            ${catOptions.replace('value="' + p.category + '"', 'value="' + p.category + '" selected')}
           </select>
           <div class="category-hint" id="unit-hint"></div>
         </div>
@@ -99,7 +121,7 @@ function openProductForm(id) {
           <div class="form-group"><label>Stock Qty</label><input type="number" id="p-stock" class="form-input" value="${p.stock}"></div>
           <div class="form-group"><label>Unit</label>
             <select id="p-unit" class="form-input">
-              ${unitOptions.map(u => `<option value="${u}" ${p.unit === u ? 'selected' : ''}>${UNIT_LABELS[u] || u}</option>`).join('')}
+              ${unitOptions.map(u => `<option value="${u}" ${p.unit === u ? 'selected' : ''}>${(typeof UNIT_LABELS !== 'undefined' && UNIT_LABELS[u]) || u}</option>`).join('')}
             </select>
           </div>
         </div>
@@ -117,43 +139,118 @@ function openProductForm(id) {
       </div>
     </div>`;
 
-  renderImageUploader('product-img-uploader', imageData, (data) => { imageData = data; });
+  // Image uploader
+  if (typeof renderImageUploader === 'function') {
+    renderImageUploader('product-img-uploader', currentImageData, (data) => {
+      currentImageData = data;
+    });
+  }
 
-  // store imageData on a global so saveProduct can read it
-  window._productImageData = () => imageData;
+  // Trigger initial unit hint
+  onCategoryChange();
+}
 
-  if (window.onCategoryChange) window.onCategoryChange();
+function onCategoryChange() {
+  const catEl = document.getElementById('p-category');
+  const unitEl = document.getElementById('p-unit');
+  const hintEl = document.getElementById('unit-hint');
+  if (!catEl || !unitEl) return;
+
+  const cat = catEl.value;
+  const units = (typeof getUnitsForCategory === 'function')
+    ? getUnitsForCategory(cat)
+    : ['piece', 'kg', 'L'];
+
+  unitEl.innerHTML = units.map(u =>
+    `<option value="${u}">${(typeof UNIT_LABELS !== 'undefined' && UNIT_LABELS[u]) || u}</option>`
+  ).join('');
+
+  if (hintEl) {
+    hintEl.textContent = cat ? `Suggested units for ${cat}: ${units.join(', ')}` : '';
+  }
+}
+
+function closeModal() {
+  document.getElementById('modal-root').innerHTML = '';
+  editingProduct = null;
+  currentImageData = '';
 }
 
 function saveProduct() {
-  const name = document.getElementById('p-name').value.trim();
-  const price = Number(document.getElementById('p-price').value);
-  if (!name || !price) return alert('Name and price are required.');
+  if (!currentShop) {
+    alert('Shop not loaded. Please refresh.');
+    return;
+  }
 
-  const image = window._productImageData ? window._productImageData() : '';
+  const nameEl = document.getElementById('p-name');
+  const priceEl = document.getElementById('p-price');
+  if (!nameEl || !priceEl) return;
+
+  const name = nameEl.value.trim();
+  const price = Number(priceEl.value);
+  if (!name || !price) return alert('Name and price are required.');
 
   const data = {
     name,
-    description: document.getElementById('p-desc').value.trim(),
-    category: document.getElementById('p-category').value || 'General',
-    cost: Number(document.getElementById('p-cost').value || 0),
+    description: (document.getElementById('p-desc') || {}).value || '',
+    category: (document.getElementById('p-category') || {}).value || 'General',
+    cost: Number((document.getElementById('p-cost') || {}).value || 0),
     price,
-    stock: Number(document.getElementById('p-stock').value || 0),
-    unit: document.getElementById('p-unit').value,
-    lowStockAt: Number(document.getElementById('p-lowstock').value || 5),
-    image,
-    isPublished: document.getElementById('p-published').checked,
+    stock: Number((document.getElementById('p-stock') || {}).value || 0),
+    unit: (document.getElementById('p-unit') || {}).value || 'piece',
+    lowStockAt: Number((document.getElementById('p-lowstock') || {}).value || 5),
+    image: currentImageData || '',
+    isPublished: (document.getElementById('p-published') || {}).checked !== false,
     isAvailable: true
   };
 
   const all = DB.getProducts();
-  if (editingProduct) {
+
+  if (editingProduct && editingProduct.id) {
+    // EDIT existing
     const idx = all.findIndex(p => p.id === editingProduct.id);
-    all[idx] = { ...editingProduct, ...data, updatedAt: new Date().toISOString() };
+    if (idx >= 0) {
+      all[idx] = { ...all[idx], ...data, updatedAt: new Date().toISOString() };
+    }
   } else {
-    all.push({ id: uid(), shopId: currentShop.id, ...data, createdAt: new Date().toISOString() });
+    // NEW product
+    all.push({
+      id: uid(),
+      shopId: currentShop.id,
+      ...data,
+      createdAt: new Date().toISOString()
+    });
   }
+
   DB.saveProducts(all);
   closeModal();
   renderProducts();
+}
+
+function deleteProduct(id) {
+  if (!confirm('Delete this product?')) return;
+  DB.saveProducts(DB.getProducts().filter(p => p.id !== id));
+  renderProducts();
+}
+
+// ============================================
+// INITIALIZE
+// ============================================
+if (window.location.pathname.endsWith('products.html')) {
+  // Wait a tick for dashboard.js to run first (sets up shop + sidebar)
+  window.addEventListener('sjs:ready', initProductsPage);
+  // Fallback if sjs:ready never fires
+  setTimeout(() => {
+    if (!currentShop) initProductsPage();
+  }, 500);
+}
+
+function initProductsPage() {
+  if (typeof initDashboard !== 'function') {
+    console.error('dashboard.js not loaded');
+    return;
+  }
+  if (!document.getElementById('content')) return;
+  currentShop = initDashboard('products');
+  if (currentShop) renderProducts();
 }
