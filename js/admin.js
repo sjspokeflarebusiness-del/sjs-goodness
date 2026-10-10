@@ -2,7 +2,11 @@
    ADMIN CONTROL CENTER
    ============================================ */
 
-if (!Auth.requireAdmin()) throw new Error('Not admin');
+const adminShop = Auth.currentShop();
+if (!adminShop || !Auth.isAdmin()) {
+  window.location.href = 'login.html';
+  throw new Error('Not admin');
+}
 
 // Sidebar
 document.getElementById('admin-nav').innerHTML = `
@@ -11,7 +15,8 @@ document.getElementById('admin-nav').innerHTML = `
   <a href="admin.html#shops" class="sidebar-link"><span>🏪</span> All Shops</a>
   <a href="admin.html#users" class="sidebar-link"><span>👥</span> Owners</a>
   <a href="admin.html#products" class="sidebar-link"><span>📦</span> All Products</a>
-  <button class="sidebar-link sidebar-logout" onclick="Auth.adminLogout()"><span>🚪</span> Logout</button>
+ <button class="sidebar-link sidebar-logout" onclick="Auth.logout()"><span>🚪</span> Logout</button>
+<a href="dashboard.html" class="sidebar-link"><span>🏪</span> Back to Shop Dashboard</a>
 `;
 
 renderNotificationBell('notif-container', 'admin');
