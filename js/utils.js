@@ -34,13 +34,6 @@ function go(url) { window.location.href = url; }
 
 // ============ IMAGE UPLOAD + COMPRESSION ============
 
-/**
- * Compresses an image file using canvas.
- * @param {File} file — the image file picked by user
- * @param {number} maxWidth — maximum width in pixels (default 500)
- * @param {number} quality — JPEG quality 0.0-1.0 (default 0.75)
- * @returns Promise<string> — base64 data URL
- */
 function compressImage(file, maxWidth = 500, quality = 0.75) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -67,12 +60,6 @@ function compressImage(file, maxWidth = 500, quality = 0.75) {
   });
 }
 
-/**
- * Renders a clickable image uploader inside a container.
- * @param {string} containerId — id of the container element
- * @param {string} currentValue — existing image URL/base64 (optional)
- * @param {function} onImage — called when image is uploaded or removed
- */
 function renderImageUploader(containerId, currentValue, onImage) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -116,9 +103,27 @@ function renderImageUploader(containerId, currentValue, onImage) {
   }
 }
 
+// ============ PRODUCT IMAGE HELPER ============
+function productImageTag(p, extraClass) {
+  extraClass = extraClass || 'product-img';
+  if (p && p.image && p.image.trim()) {
+    return `<img src="${esc(p.image)}" class="${extraClass}" alt="${esc(p.name || '')}" onerror="this.outerHTML='<div class=\\'product-img-fallback\\'>🛍️</div>'">`;
+  }
+  const icons = {
+    'Sugars': '🍬', 'Seeds & Nuts': '🥜', 'Fruits': '🍎', 'Vegetables': '🥕',
+    'Drinks': '🥤', 'Water Bottles': '💧', 'Snacks': '🍪', 'Dairy': '🥛',
+    'Spices': '🌶️', 'Grains & Rice': '🌾', 'Oils': '🫒', 'Bakery': '🍞',
+    'Household': '🏠', 'Personal Care': '🧴', 'Medicines': '💊',
+    'Stationery': '✏️', 'Electronics': '🔌', 'Clothing': '👕',
+    'Groceries': '🛒', 'General': '📦'
+  };
+  const emoji = (p && icons[p.category]) || '🛍️';
+  return `<div class="product-img-fallback">${emoji}</div>`;
+}
+
 // ============ THEME ============
 function applyTheme() {
-  if (typeof DB === 'undefined') return; // DB not loaded yet
+  if (typeof DB === 'undefined') return;
   const theme = DB.getTheme();
   if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
   else document.documentElement.removeAttribute('data-theme');
