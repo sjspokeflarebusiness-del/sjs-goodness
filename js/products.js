@@ -56,6 +56,8 @@ function openProductForm(id) {
   const catOptions = getCategoryOptions();
   const unitOptions = getUnitsForCategory(p.category);
 
+  let imageData = p.image || '';
+
   document.getElementById('modal-root').innerHTML = `
     <div class="modal-overlay">
       <div class="modal">
@@ -63,19 +65,36 @@ function openProductForm(id) {
           <h2>${editingProduct ? 'Edit Product' : 'Add Product'}</h2>
           <button class="modal-close" onclick="closeModal()">×</button>
         </div>
-        <div class="form-group"><label>Product Name *</label><input id="p-name" class="form-input" value="${esc(p.name)}"></div>
-        <div class="form-group"><label>Category</label>
+
+        <div class="form-group">
+          <label>Product Image</label>
+          <div id="product-img-uploader"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Product Name *</label>
+          <input id="p-name" class="form-input" value="${esc(p.name)}">
+        </div>
+
+        <div class="form-group">
+          <label>Category</label>
           <select id="p-category" class="form-input" onchange="onCategoryChange()">
             <option value="">Select category…</option>
             ${catOptions.replace(`value="${p.category}"`, `value="${p.category}" selected`)}
           </select>
           <div class="category-hint" id="unit-hint"></div>
         </div>
-        <div class="form-group"><label>Description</label><input id="p-desc" class="form-input" value="${esc(p.description || '')}"></div>
+
+        <div class="form-group">
+          <label>Description</label>
+          <input id="p-desc" class="form-input" value="${esc(p.description || '')}">
+        </div>
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
           <div class="form-group"><label>Purchase Cost ₹</label><input type="number" id="p-cost" class="form-input" value="${p.cost}"></div>
           <div class="form-group"><label>Selling Price ₹ *</label><input type="number" id="p-price" class="form-input" value="${p.price}"></div>
         </div>
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
           <div class="form-group"><label>Stock Qty</label><input type="number" id="p-stock" class="form-input" value="${p.stock}"></div>
           <div class="form-group"><label>Unit</label>
@@ -84,9 +103,13 @@ function openProductForm(id) {
             </select>
           </div>
         </div>
+
         <div class="form-group"><label>Low Stock Alert At</label><input type="number" id="p-lowstock" class="form-input" value="${p.lowStockAt}"></div>
-        <div class="form-group"><label>Image URL</label><input id="p-image" class="form-input" value="${esc(p.image || '')}" placeholder="https://..."></div>
-        <div class="form-group"><label><input type="checkbox" id="p-published" ${p.isPublished ? 'checked' : ''}> Publish on public marketplace</label></div>
+
+        <div class="form-group">
+          <label><input type="checkbox" id="p-published" ${p.isPublished ? 'checked' : ''}> Publish on public marketplace</label>
+        </div>
+
         <div class="modal-footer">
           <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
           <button class="btn btn-primary" onclick="saveProduct()">${editingProduct ? 'Save' : 'Add Product'}</button>
@@ -94,28 +117,20 @@ function openProductForm(id) {
       </div>
     </div>`;
 
+  renderImageUploader('product-img-uploader', imageData, (data) => { imageData = data; });
+
+  // store imageData on a global so saveProduct can read it
+  window._productImageData = () => imageData;
+
   if (window.onCategoryChange) window.onCategoryChange();
-}
-
-function onCategoryChange() {
-  const cat = document.getElementById('p-category').value;
-  const units = getUnitsForCategory(cat);
-  const unitSel = document.getElementById('p-unit');
-  const current = unitSel.value;
-  unitSel.innerHTML = units.map(u => `<option value="${u}" ${current === u ? 'selected' : ''}>${UNIT_LABELS[u] || u}</option>`).join('');
-  const hint = document.getElementById('unit-hint');
-  if (hint) hint.textContent = cat ? `Suggested units for ${cat}: ${units.join(', ')}` : '';
-}
-
-function closeModal() {
-  document.getElementById('modal-root').innerHTML = '';
-  editingProduct = null;
 }
 
 function saveProduct() {
   const name = document.getElementById('p-name').value.trim();
   const price = Number(document.getElementById('p-price').value);
   if (!name || !price) return alert('Name and price are required.');
+
+  const image = window._productImageData ? window._productImageData() : '';
 
   const data = {
     name,
@@ -126,7 +141,7 @@ function saveProduct() {
     stock: Number(document.getElementById('p-stock').value || 0),
     unit: document.getElementById('p-unit').value,
     lowStockAt: Number(document.getElementById('p-lowstock').value || 5),
-    image: document.getElementById('p-image').value.trim(),
+    image,
     isPublished: document.getElementById('p-published').checked,
     isAvailable: true
   };
@@ -141,15 +156,4 @@ function saveProduct() {
   DB.saveProducts(all);
   closeModal();
   renderProducts();
-}
-
-function deleteProduct(id) {
-  if (!confirm('Delete this product?')) return;
-  DB.saveProducts(DB.getProducts().filter(p => p.id !== id));
-  renderProducts();
-}
-
-if (window.location.pathname.endsWith('products.html')) {
-  currentShop = initDashboard('products');
-  if (currentShop) renderProducts();
 }
