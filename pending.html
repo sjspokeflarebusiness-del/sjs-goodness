@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="js/head-loader.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pending Approval — SJS Goodness</title>
@@ -21,9 +22,7 @@
   <a href="https://wa.me/918056669214?text=Hi, I'm waiting for shop approval" target="_blank" class="btn btn-success btn-block mt-4">📱 WhatsApp Now</a>
   <button onclick="Auth.logout()" class="btn btn-ghost btn-block mt-2">Logout</button>
 </div>
-<script src="js/utils.js"></script>
-<script src="js/db.js"></script>
-<script src="js/auth.js"></script>
+<script src="js/tail-loader.js"></script>
 <script>
 const s = Auth.currentShop();
 if (s) document.getElementById('shop-name-pending').innerHTML = '<strong>' + esc(s.name) + '</strong> is waiting for approval.';
