@@ -1,6 +1,5 @@
 /* ============================================
-   SJS GOODNESS — DATABASE LAYER
-   localStorage-based.
+   SJS GOODNESS — DATABASE LAYER v2
    ============================================ */
 
 const DB = {
@@ -13,54 +12,46 @@ const DB = {
   },
   set(key, value) { localStorage.setItem('sjs_' + key, JSON.stringify(value)); },
 
-  // Shops
   getShops: () => DB.get('shops', []),
   saveShops: (s) => DB.set('shops', s),
 
-  // Products
   getProducts: () => DB.get('products', []),
   saveProducts: (p) => DB.set('products', p),
 
-  // Orders
   getOrders: () => DB.get('orders', []),
   saveOrders: (o) => DB.set('orders', o),
 
-  // Expenses
   getExpenses: () => DB.get('expenses', []),
   saveExpenses: (e) => DB.set('expenses', e),
 
-  // Customers
   getCustomers: () => DB.get('customers', []),
   saveCustomers: (c) => DB.set('customers', c),
 
-  // Notifications
   getNotifications: () => DB.get('notifications', []),
   saveNotifications: (n) => DB.set('notifications', n),
 
-  // Session
   getSession: () => DB.get('session', null),
   setSession: (s) => DB.set('session', s),
   clearSession: () => localStorage.removeItem('sjs_session'),
 
-  // Admin session
   getAdminSession: () => DB.get('admin_session', null),
   setAdminSession: (s) => DB.set('admin_session', s),
   clearAdminSession: () => localStorage.removeItem('sjs_admin_session'),
 
-  // Helpers
+  getTheme: () => DB.get('theme', 'light'),
+  setTheme: (t) => DB.set('theme', t),
+
   getShop: (id) => DB.getShops().find(s => s.id === id),
   getProductsForShop: (shopId) => DB.getProducts().filter(p => p.shopId === shopId),
   getOrdersForShop: (shopId) => DB.getOrders().filter(o => o.shopId === shopId),
   getExpensesForShop: (shopId) => DB.getExpenses().filter(e => e.shopId === shopId),
   getCustomersForShop: (shopId) => DB.getCustomers().filter(c => c.shopId === shopId),
 
-  // Notifications helpers
   addNotification(shopId, type, title, message) {
     const all = DB.getNotifications();
     all.unshift({
       id: Math.random().toString(36).slice(2, 10),
-      shopId, // null = for admin, otherwise shopId
-      type, title, message,
+      shopId, type, title, message,
       read: false,
       createdAt: new Date().toISOString()
     });
@@ -78,35 +69,47 @@ const DB = {
     DB.saveNotifications(all);
   },
 
-  // ============ SEED ============
+  // ============ SEED v2 ============
   seed() {
-    if (DB.getShops().length === 0) {
-      const demos = [
-        {
-          id: 'shop_sjs',
-          ownerEmail: 'mom@sjs.com',
-          ownerPassword: 'sjs12345',
-          name: 'SJS Goodness',
-          description: 'Country sugar, natural seeds and traditional goodness from Puducherry.',
-          category: 'Groceries',
-          serviceArea: 'Puducherry',
-          phone: '+91 90000 00000',
-          logo: '',
-          isApproved: true,
-          status: 'approved',
-          createdAt: new Date().toISOString()
-        }
-      ];
-      DB.saveShops(demos);
-      DB.saveProducts([
-        { id: 'p1', shopId: 'shop_sjs', name: 'Country Sugar (Nattu Sakkarai)', description: 'Pure traditional country sugar', price: 120, cost: 80, stock: 50, unit: 'kg', category: 'Sugars', image: '', isAvailable: true, isPublished: true, lowStockAt: 10, createdAt: new Date().toISOString() },
-        { id: 'p2', shopId: 'shop_sjs', name: 'Pumpkin Seeds', description: 'Premium raw pumpkin seeds', price: 250, cost: 180, stock: 30, unit: 'kg', category: 'Seeds & Nuts', image: '', isAvailable: true, isPublished: true, lowStockAt: 5, createdAt: new Date().toISOString() },
-        { id: 'p3', shopId: 'shop_sjs', name: 'Coconut Water', description: 'Fresh tender coconut water', price: 60, cost: 35, stock: 20, unit: 'ml', category: 'Drinks', image: '', isAvailable: true, isPublished: true, lowStockAt: 5, createdAt: new Date().toISOString() }
-      ]);
+    // Detect old seed and reset (fake data removal)
+    const seededVersion = DB.get('seed_version', 0);
+    if (seededVersion < 2) {
+      // Wipe everything from v1
+      localStorage.removeItem('sjs_shops');
+      localStorage.removeItem('sjs_products');
+      localStorage.removeItem('sjs_orders');
+      localStorage.removeItem('sjs_customers');
+      localStorage.removeItem('sjs_expenses');
+      localStorage.removeItem('sjs_notifications');
+      DB.set('seed_version', 2);
     }
 
-    if (!DB.getAdminSession() && DB.get('admin_seeded', false) === false) {
-      DB.set('admin_seeded', true);
+    // Only seed if truly empty
+    if (DB.getShops().length === 0) {
+      // Flaren — admin's own shop (digital products)
+      const flaren = {
+        id: 'shop_flaren',
+        ownerEmail: 'flaren@sjs.com',
+        ownerPassword: 'flaren123',
+        name: 'Flaren Digital',
+        description: 'Digital products, websites, and design services by Flaren.',
+        category: 'Electronics',
+        serviceArea: 'Online · All India',
+        address: 'Puducherry, India',
+        phone: '8056669214',
+        logo: '',
+        banner: '',
+        isApproved: true,
+        status: 'approved',
+        isAdminShop: true,
+        createdAt: new Date().toISOString()
+      };
+      DB.saveShops([flaren]);
+
+      DB.saveProducts([
+        { id: 'p_f1', shopId: 'shop_flaren', name: 'Website Design Service', description: 'Custom website built for you', price: 15000, cost: 0, stock: 5, unit: 'piece', category: 'Electronics', image: '', isAvailable: true, isPublished: true, lowStockAt: 1, createdAt: new Date().toISOString() },
+        { id: 'p_f2', shopId: 'shop_flaren', name: 'Logo Design', description: 'Professional brand logo', price: 3000, cost: 0, stock: 10, unit: 'piece', category: 'Electronics', image: '', isAvailable: true, isPublished: true, lowStockAt: 2, createdAt: new Date().toISOString() }
+      ]);
     }
   }
 };
