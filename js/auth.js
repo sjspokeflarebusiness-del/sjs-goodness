@@ -1,16 +1,22 @@
 /* ============================================
-   SJS GOODNESS — AUTHENTICATION
+   AUTHENTICATION — unified admin + shop
    ============================================ */
 
-const ADMIN_CONTACT = '8056669214';
-const ADMIN_USERNAME = 'flaren';
-const ADMIN_PASSWORD = 'flaren@8056669214';
+// ⚙️ CHANGE THIS: the email of the admin account
+const ADMIN_EMAIL = 'flaren@sjs.com';
 
 const Auth = {
   currentShop() {
     const session = DB.getSession();
     if (!session) return null;
     return DB.getShop(session.shopId);
+  },
+
+  // Is the current logged-in shop the admin?
+  isAdmin() {
+    const shop = Auth.currentShop();
+    if (!shop) return false;
+    return shop.ownerEmail === ADMIN_EMAIL;
   },
 
   login(email, password) {
@@ -24,19 +30,6 @@ const Auth = {
     if (shop.status === 'rejected') return { error: 'Your shop registration was not approved. Contact admin.' };
     DB.setSession({ shopId: shop.id, loginAt: new Date().toISOString() });
     return { shop };
-  },
-
-  // Admin login
-  adminLogin(username, password) {
-    if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) return false;
-    DB.setAdminSession({ loggedIn: true, at: new Date().toISOString() });
-    return true;
-  },
-  isAdmin() { return !!DB.getAdminSession(); },
-  adminLogout() { DB.clearAdminSession(); window.location.href = 'admin-login.html'; },
-  requireAdmin() {
-    if (!Auth.isAdmin()) { window.location.href = 'admin-login.html'; return false; }
-    return true;
   },
 
   logout() {
@@ -57,21 +50,19 @@ const Auth = {
       description: data.description || '',
       category: data.category || 'General',
       serviceArea: 'Puducherry',
+      address: '',
       phone: data.phone || '',
       logo: '',
-      isApproved: false,          // pending approval
-      status: 'pending',           // pending | approved | rejected
+      banner: '',
+      isApproved: false,
+      status: 'pending',
       createdAt: new Date().toISOString()
     };
     shops.push(shop);
     DB.saveShops(shops);
-
-    // Notify admin
     DB.addNotification(null, 'new_shop_request',
       'New Shop Request',
       `${shop.name} (${shop.phone}) wants to join. Contact: ${shop.phone}`);
-
-    // NO auto-login — owner waits for approval
     return { shop };
   },
 
