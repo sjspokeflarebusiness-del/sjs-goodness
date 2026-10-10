@@ -16,15 +16,20 @@ function initDashboard(pageKey) {
 
   const nav = document.getElementById('sidebar-nav');
   if (nav) {
-    const items = [
-      { key: 'dashboard', label: 'Overview', icon: '📊', href: 'dashboard.html' },
-      { key: 'products', label: 'Products', icon: '📦', href: 'products.html' },
-      { key: 'orders', label: 'Orders', icon: '🛒', href: 'orders.html' },
-      { key: 'customers', label: 'Customers', icon: '👥', href: 'customers.html' },
-      { key: 'expenses', label: 'Expenses', icon: '💰', href: 'expenses.html' },
-      { key: 'analytics', label: 'Analytics', icon: '📈', href: 'analytics.html' },
-      { key: 'profile', label: 'Shop Profile', icon: '🏪', href: 'profile.html' }
-    ];
+   const items = [
+  { key: 'dashboard', label: 'Overview', icon: '📊', href: 'dashboard.html' },
+  { key: 'products', label: 'Products', icon: '📦', href: 'products.html' },
+  { key: 'orders', label: 'Orders', icon: '🛒', href: 'orders.html' },
+  { key: 'customers', label: 'Customers', icon: '👥', href: 'customers.html' },
+  { key: 'expenses', label: 'Expenses', icon: '💰', href: 'expenses.html' },
+  { key: 'analytics', label: 'Analytics', icon: '📈', href: 'analytics.html' },
+  { key: 'profile', label: 'Shop Profile', icon: '🏪', href: 'profile.html' }
+];
+
+// ⚡ If you are the admin, add the Admin Panel link
+if (Auth.isAdmin()) {
+  items.push({ key: 'admin', label: '🛡️ Admin Panel', icon: '🛡️', href: 'admin.html' });
+}
     nav.innerHTML = items.map(it => `
       <a href="${it.href}" class="sidebar-link ${it.key === pageKey ? 'active' : ''}">
         <span>${it.icon}</span> ${it.label}
