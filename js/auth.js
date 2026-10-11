@@ -3,6 +3,7 @@
    ============================================ */
 
 const ADMIN_CONTACT = '8056669214';
+const ADMIN_EMAIL = 'flaren@sjs.com';
 
 const Auth = {
   currentShop() {
@@ -11,7 +12,12 @@ const Auth = {
     return DB.getShop(session.shopId);
   },
 
-  // ---- LOGIN using Firestore (keeps simple) ----
+  // Is the logged-in shop the admin?
+  isAdmin() {
+    const shop = Auth.currentShop();
+    return shop && shop.ownerEmail === ADMIN_EMAIL;
+  },
+
   async login(email, password) {
     const shops = DB.getShops();
     const shop = shops.find(s =>
