@@ -1,3 +1,4 @@
+window.addEventListener('sjs:ready', function () {
 /* ============================================
    ADMIN CONTROL CENTER
    ============================================ */
@@ -296,3 +297,4 @@ function nukeAll() {
 
 // ---------- INITIAL RENDER ----------
 renderAdmin();
+});
