@@ -555,3 +555,297 @@ body {
   align-items: center;
   gap: 0.65rem;
 }
+/* ============================================
+   SHOP PAGE — REFINED STYLING
+   ============================================ */
+
+/* ---------- SHARE BUTTON ---------- */
+.share-wrap {
+  position: relative;
+  display: inline-block;
+  margin-top: 0.75rem;
+}
+
+.share-btn {
+  background: white;
+  color: var(--orange);
+  border: 1.5px solid var(--orange);
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.15s;
+}
+
+.share-btn:hover {
+  background: var(--orange);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.share-btn.share-btn-primary {
+  background: var(--orange);
+  color: white;
+  border-color: var(--orange);
+}
+
+/* Share menu popup */
+.share-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.18);
+  border: 1px solid var(--gray-200);
+  min-width: 220px;
+  z-index: 60;
+  overflow: hidden;
+  animation: sharePop 0.15s ease-out;
+}
+
+@keyframes sharePop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.share-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--gray-900);
+  transition: background 0.1s;
+}
+
+.share-menu-item:hover {
+  background: var(--gray-50);
+}
+
+.share-menu-item + .share-menu-item {
+  border-top: 1px solid var(--gray-100);
+}
+
+.share-menu-item .icon {
+  font-size: 1.1rem;
+  width: 24px;
+  text-align: center;
+}
+
+/* ---------- SHOP PAGE — improved layout ---------- */
+.shop-hero {
+  background: linear-gradient(135deg, #fed7aa 0%, #fecaca 100%);
+  padding: 2rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.shop-hero-inner {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+.shop-hero-logo {
+  width: 110px;
+  height: 110px;
+  border-radius: 20px;
+  background: white;
+  object-fit: contain;
+  padding: 8px;
+  border: 4px solid white;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--orange);
+  flex-shrink: 0;
+}
+
+.shop-hero-info { flex: 1; }
+.shop-hero-info h1 {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.shop-hero-info .meta {
+  font-size: 0.9rem;
+  color: var(--gray-700);
+  margin-bottom: 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+.shop-hero-badge {
+  display: inline-block;
+  background: white;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-top: 0.5rem;
+  color: var(--green);
+}
+.shop-hero-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+/* ---------- Better product cards ---------- */
+.product-card {
+  background: white;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--gray-100);
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+}
+.product-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+  border-color: var(--gray-200);
+}
+.product-img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  background: var(--gray-100);
+  display: block;
+}
+.product-img-fallback {
+  width: 100%;
+  height: 150px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+}
+.product-body {
+  padding: 0.85rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.product-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  line-height: 1.3;
+}
+.product-meta {
+  font-size: 0.7rem;
+  color: var(--gray-500);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+}
+.product-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+}
+.product-price {
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--gray-900);
+}
+.add-btn {
+  background: white;
+  border: 1.5px solid var(--green);
+  color: var(--green);
+  padding: 0.35rem 0.85rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.add-btn:hover {
+  background: var(--green);
+  color: white;
+}
+
+/* ---------- Cart refined ---------- */
+.cart-box {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 14px;
+  padding: 1.25rem;
+  position: sticky;
+  top: 5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+.cart-title {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+/* ---------- Responsive for shop page ---------- */
+@media (max-width: 768px) {
+  .shop-hero-inner {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+  .shop-hero-info h1 { font-size: 1.35rem; }
+  .shop-hero-info .meta {
+    justify-content: center;
+    font-size: 0.85rem;
+  }
+  .shop-hero-actions { justify-content: center; }
+  .shop-hero-logo {
+    width: 90px;
+    height: 90px;
+    font-size: 2rem;
+  }
+}
+
+/* ---------- WhatsApp button in share menu ---------- */
+.share-menu-item.wa { color: #25D366; }
+.share-menu-item.wa:hover { background: #f0fdf4; }
+
+/* ---------- Toast notification ---------- */
+.toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  z-index: 200;
+  animation: toastIn 0.2s ease-out;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
