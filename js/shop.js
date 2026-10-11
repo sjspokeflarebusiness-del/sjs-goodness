@@ -1,5 +1,5 @@
 /* ============================================
-   SHOP DETAIL PAGE — Firebase + Share + Smart Overlay
+   SHOP DETAIL PAGE — Firebase + Share + Overlay
    ============================================ */
 
 window.addEventListener('sjs:ready', function () {
@@ -12,64 +12,14 @@ window.addEventListener('sjs:ready', function () {
       return;
     }
 
-  document.title = shop.name + ' — SJS & CO';
+    document.title = shop.name + ' — SJS & CO';
 
-// Logo
-const logoHtml = shop.logo
-  ? `<img src="${esc(shop.logo)}" class="shop-hero-logo" alt="${esc(shop.name)}">`
-  : `<div class="shop-hero-logo">${esc(shop.name[0])}</div>`;
+    const logoHtml = shop.logo
+      ? `<img src="${esc(shop.logo)}" class="shop-hero-logo" alt="${esc(shop.name)}">`
+      : `<div class="shop-hero-logo">${esc(shop.name[0])}</div>`;
 
-// Hero — SET UP FIRST, THEN APPLY CLASSES
-const heroEl = document.getElementById('shop-hero');
-
-// Build inner HTML FIRST
-heroEl.innerHTML = `
-  <div class="container">
-    <div class="shop-hero-inner">
-      ${logoHtml}
-      <div class="shop-hero-info">
-        <h1>${esc(shop.name)}</h1>
-        <div class="meta">
-          <span>🏪 ${esc(shop.category || 'General')}</span>
-          <span>📍 ${esc(shop.serviceArea || 'Puducherry')}</span>
-          ${shop.phone ? `<span>📞 ${esc(shop.phone)}</span>` : ''}
-        </div>
-        <p class="shop-hero-desc">${esc(shop.description || '')}</p>
-        <span class="shop-hero-badge">✅ Approved Shop</span>
-        <div class="shop-hero-actions">
-          <div class="share-wrap" id="share-wrap">
-            <button class="share-btn share-btn-primary" id="share-btn-main">
-              📤 Share Shop
-            </button>
-          </div>
-          ${shop.phone ? `<a href="https://wa.me/91${esc((shop.phone||'').replace(/\D/g,''))}" target="_blank" class="share-btn" style="text-decoration:none;">💬 WhatsApp</a>` : ''}
-        </div>
-      </div>
-    </div>
-  </div>
-`;
-
-// NOW apply banner + classes AFTER innerHTML is set
-if (shop.banner) {
-  heroEl.style.backgroundImage = `url('${shop.banner}')`;
-  heroEl.style.backgroundSize = 'cover';
-  heroEl.style.backgroundPosition = 'center';
-  heroEl.classList.add('has-banner');
-} else {
-  heroEl.style.backgroundImage = '';
-  heroEl.classList.remove('has-banner');
-}
-
-    // Detect if banner is dark and add appropriate text class
-    if (shop.banner) {
-      detectBannerBrightness(shop.banner).then(isDark => {
-        if (isDark) heroEl.classList.add('dark-banner');
-        else heroEl.classList.add('light-banner');
-      }).catch(() => {
-        // Fallback: assume dark-ish banner, apply overlay
-        heroEl.classList.add('dark-banner');
-      });
-    }
+    // ---- HERO: build inner HTML FIRST ----
+    const heroEl = document.getElementById('shop-hero');
 
     heroEl.innerHTML = `
       <div class="container">
@@ -98,40 +48,15 @@ if (shop.banner) {
       </div>
     `;
 
-    // ============ BANNER BRIGHTNESS DETECTION ============
-    // Loads the banner image, samples pixels, returns whether it's dark
-    function detectBannerBrightness(imageUrl) {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = function () {
-          try {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            // Sample a small region for speed
-            canvas.width = 50;
-            canvas.height = 50;
-            ctx.drawImage(img, 0, 0, 50, 50);
-            const data = ctx.getImageData(0, 0, 50, 50).data;
-            let totalLum = 0;
-            let count = 0;
-            for (let i = 0; i < data.length; i += 4) {
-              const r = data[i], g = data[i + 1], b = data[i + 2];
-              // Perceived luminance formula
-              const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-              totalLum += lum;
-              count++;
-            }
-            const avgLum = totalLum / count;
-            // Below 128 = dark image
-            resolve(avgLum < 128);
-          } catch (e) {
-            reject(e);
-          }
-        };
-        img.onerror = reject;
-        img.src = imageUrl;
-      });
+    // ---- THEN apply banner + classes ----
+    if (shop.banner) {
+      heroEl.style.backgroundImage = `url('${shop.banner}')`;
+      heroEl.style.backgroundSize = 'cover';
+      heroEl.style.backgroundPosition = 'center';
+      heroEl.classList.add('has-banner');
+    } else {
+      heroEl.style.backgroundImage = '';
+      heroEl.classList.remove('has-banner');
     }
 
     // ============ SHARE ============
@@ -141,62 +66,53 @@ if (shop.banner) {
     const shareTitle = `${shop.name} — SJS & CO`;
     const shareText = `Check out ${shop.name} on SJS & CO 🛍️`;
 
-    shareBtn.onclick = (e) => {
-      e.stopPropagation();
-      const existing = shareWrap.querySelector('.share-menu');
-      if (existing) { existing.remove(); return; }
+    if (shareBtn) {
+      shareBtn.onclick = (e) => {
+        e.stopPropagation();
+        const existing = shareWrap.querySelector('.share-menu');
+        if (existing) { existing.remove(); return; }
 
-      const menu = document.createElement('div');
-      menu.className = 'share-menu';
-      menu.innerHTML = `
-        <button class="share-menu-item" data-action="native">
-          <span class="icon">📤</span> Share via…
-        </button>
-        <button class="share-menu-item wa" data-action="whatsapp">
-          <span class="icon">💬</span> Share on WhatsApp
-        </button>
-        <button class="share-menu-item" data-action="copy">
-          <span class="icon">🔗</span> Copy Link
-        </button>
-        <button class="share-menu-item" data-action="sms">
-          <span class="icon">📱</span> Share via SMS
-        </button>
-      `;
-      shareWrap.appendChild(menu);
+        const menu = document.createElement('div');
+        menu.className = 'share-menu';
+        menu.innerHTML = `
+          <button class="share-menu-item" data-action="native"><span class="icon">📤</span> Share via…</button>
+          <button class="share-menu-item wa" data-action="whatsapp"><span class="icon">💬</span> Share on WhatsApp</button>
+          <button class="share-menu-item" data-action="copy"><span class="icon">🔗</span> Copy Link</button>
+          <button class="share-menu-item" data-action="sms"><span class="icon">📱</span> Share via SMS</button>
+        `;
+        shareWrap.appendChild(menu);
 
-      menu.querySelectorAll('[data-action]').forEach(btn => {
-        btn.onclick = async (ev) => {
-          ev.stopPropagation();
-          const action = btn.getAttribute('data-action');
-          await handleShare(action);
-          menu.remove();
-        };
-      });
+        menu.querySelectorAll('[data-action]').forEach(btn => {
+          btn.onclick = async (ev) => {
+            ev.stopPropagation();
+            const action = btn.getAttribute('data-action');
+            await handleShare(action);
+            menu.remove();
+          };
+        });
 
-      setTimeout(() => {
-        document.addEventListener('click', function closeMenu() {
-          const m = shareWrap.querySelector('.share-menu');
-          if (m) m.remove();
-          document.removeEventListener('click', closeMenu);
-        }, { once: true });
-      }, 100);
-    };
+        setTimeout(() => {
+          document.addEventListener('click', function closeMenu() {
+            const m = shareWrap.querySelector('.share-menu');
+            if (m) m.remove();
+            document.removeEventListener('click', closeMenu);
+          }, { once: true });
+        }, 100);
+      };
+    }
 
     async function handleShare(action) {
       if (action === 'native') {
         if (navigator.share) {
-          try {
-            await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
-            return;
-          } catch (e) {}
+          try { await navigator.share({ title: shareTitle, text: shareText, url: shareUrl }); return; }
+          catch (e) {}
         }
         await copyToClipboard(shareUrl);
         showToast('✅ Link copied to clipboard');
         return;
       }
       if (action === 'whatsapp') {
-        const waUrl = `https://wa.me/?text=${encodeURIComponent(shareText + '\n' + shareUrl)}`;
-        window.open(waUrl, '_blank');
+        window.open(`https://wa.me/?text=${encodeURIComponent(shareText + '\n' + shareUrl)}`, '_blank');
         return;
       }
       if (action === 'copy') {
@@ -205,8 +121,7 @@ if (shop.banner) {
         return;
       }
       if (action === 'sms') {
-        const smsUrl = `sms:?body=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
-        window.location.href = smsUrl;
+        window.location.href = `sms:?body=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
         return;
       }
     }
@@ -334,7 +249,7 @@ if (shop.banner) {
                 <button class="btn btn-ghost" onclick="document.getElementById('checkout-modal').innerHTML=''">Cancel</button>
                 <button class="btn btn-success" id="place-order">Place Order</button>
               </div>
-              <p class="text-xs text-muted mt-2" style="text-align:center;">💵 Payment on delivery. The shop will contact you.</p>
+              <p class="text-xs text-muted mt-2" style="text-align:center;">💵 Payment on delivery.</p>
             </div>
           </div>`;
 
