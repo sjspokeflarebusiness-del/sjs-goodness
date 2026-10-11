@@ -1,5 +1,6 @@
 /* ============================================
    SHARED DASHBOARD BOILERPLATE — Firebase
+   + Overview page + Share Shop card
    ============================================ */
 
 function initDashboard(pageKey) {
@@ -27,8 +28,8 @@ function initDashboard(pageKey) {
     ];
 
     // Add admin link if this is the admin
-    if (shop.ownerEmail === ADMIN_EMAIL) {
-      items.push({ key: 'admin', label: '🛡️ Admin Panel', icon: '🛡️', href: 'admin.html' });
+    if (typeof ADMIN_EMAIL !== 'undefined' && shop.ownerEmail === ADMIN_EMAIL) {
+      items.push({ key: 'admin', label: 'Admin Panel', icon: '🛡️', href: 'admin.html' });
     }
 
     nav.innerHTML = items.map(it => `
@@ -55,7 +56,49 @@ function initDashboard(pageKey) {
   return shop;
 }
 
-// ============ DASHBOARD OVERVIEW ============
+// ============ SHOP LINK HELPERS ============
+
+function getShopPublicUrl(shopId) {
+  // Build the public shop URL regardless of which dashboard page we're on
+  const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+  return base + 'shop.html?id=' + shopId;
+}
+
+window.getShopPublicUrl = getShopPublicUrl;
+
+window.copyShopLink = function (shopId) {
+  const url = getShopPublicUrl(shopId);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => {
+      alert('✅ Shop link copied to clipboard!');
+    }).catch(() => {
+      alert('❌ Could not copy. Here is the link:\n' + url);
+    });
+  } else {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      alert('✅ Shop link copied!');
+    } catch (e) {
+      alert('❌ Could not copy. Here is the link:\n' + url);
+    }
+    document.body.removeChild(ta);
+  }
+};
+
+window.shareShopOnWhatsApp = function (shopId, shopName) {
+  const url = getShopPublicUrl(shopId);
+  const text = `Check out ${shopName} on SJS & CO 🛍️\n${url}`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+};
+
+// ============ DASHBOARD OVERVIEW PAGE ============
 window.addEventListener('sjs:ready', function () {
   if (!window.location.pathname.endsWith('dashboard.html')) return;
   if (!document.getElementById('content')) return;
@@ -77,6 +120,8 @@ window.addEventListener('sjs:ready', function () {
   const pending = orders.filter(o => ['placed', 'confirmed', 'preparing', 'out_for_delivery'].includes(o.orderStatus)).length;
   const lowStock = products.filter(p => p.stock <= (p.lowStockAt || 5));
 
+  const shopPublicUrl = getShopPublicUrl(shop.id);
+
   document.getElementById('content').innerHTML = `
     <div class="metrics-grid">
       <div class="metric metric-green"><div class="metric-label">Total Revenue</div><div class="metric-value">${fmt(revenue)}</div></div>
@@ -90,6 +135,17 @@ window.addEventListener('sjs:ready', function () {
       <div class="stat-card"><div class="stat-label">Customers</div><div class="stat-value">${customers.length}</div></div>
       <div class="stat-card"><div class="stat-label">Products</div><div class="stat-value">${products.length}</div></div>
       <div class="stat-card"><div class="stat-label">Low Stock</div><div class="stat-value" style="color:${lowStock.length > 0 ? 'var(--red)' : 'inherit'}">${lowStock.length}</div></div>
+    </div>
+
+    <div class="table-card" style="padding:1.25rem;margin-bottom:1.5rem;">
+      <h3 style="margin-bottom:0.5rem;font-size:1rem;">📤 Share Your Shop</h3>
+      <p class="text-sm text-muted" style="margin-bottom:0.75rem;">Send this link to customers on WhatsApp, Instagram, or SMS:</p>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <input readonly value="${esc(shopPublicUrl)}"
+               style="flex:1;padding:0.65rem;border:1px solid var(--gray-200);border-radius:8px;font-size:0.85rem;background:var(--gray-50);min-width:200px;">
+        <button class="btn btn-primary" onclick="copyShopLink('${esc(shop.id)}')">Copy Link</button>
+        <button class="btn btn-success" onclick="shareShopOnWhatsApp('${esc(shop.id)}', '${esc(shop.name).replace(/'/g, "\\'")}')">WhatsApp</button>
+      </div>
     </div>
 
     <div class="table-card">
