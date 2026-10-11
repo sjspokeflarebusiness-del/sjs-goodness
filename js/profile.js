@@ -1,15 +1,20 @@
-window.addEventListener('sjs:ready', function () {
 /* ============================================
-   SHOP PROFILE EDITOR (with Image Upload)
+   SHOP PROFILE EDITOR — Firebase
    ============================================ */
 
-const currentShop = initDashboard('profile');
+let currentShop = null;
+let logoData = '';
+let bannerData = '';
 
-if (currentShop) {
-  let logoData = currentShop.logo || '';
-  let bannerData = currentShop.banner || '';
+function renderProfile() {
+  if (!currentShop) return;
+  logoData = currentShop.logo || '';
+  bannerData = currentShop.banner || '';
 
-  document.getElementById('content').innerHTML = `
+  const contentEl = document.getElementById('content');
+  if (!contentEl) return;
+
+  contentEl.innerHTML = `
     <div class="table-card" style="max-width:640px;padding:1.5rem;">
       <h2 style="margin-bottom:1.25rem;">🏪 Shop Profile</h2>
 
@@ -32,7 +37,7 @@ if (currentShop) {
         <label>Category</label>
         <select id="s-category" class="form-input">
           <option value="">Select…</option>
-          ${getCategoryOptions().replace(`value="${currentShop.category}"`, `value="${currentShop.category}" selected`)}
+          ${(typeof getCategoryOptions === 'function' ? getCategoryOptions() : '').replace('value="' + currentShop.category + '"', 'value="' + currentShop.category + '" selected')}
         </select>
       </div>
 
@@ -60,32 +65,54 @@ if (currentShop) {
     </div>
   `;
 
-  renderImageUploader('logo-uploader', logoData, (data) => { logoData = data; });
-  renderImageUploader('banner-uploader', bannerData, (data) => { bannerData = data; });
+  if (typeof renderImageUploader === 'function') {
+    renderImageUploader('logo-uploader', logoData, (data) => { logoData = data; });
+    renderImageUploader('banner-uploader', bannerData, (data) => { bannerData = data; });
+  }
 }
 
-function saveProfile() {
+async function saveProfile() {
+  if (!currentShop) return alert('Shop not loaded. Refresh the page.');
+
   const shops = DB.getShops();
   const idx = shops.findIndex(s => s.id === currentShop.id);
-  if (idx < 0) return;
+  if (idx < 0) return alert('Shop not found.');
 
-  const name = document.getElementById('s-name').value.trim();
+  const nameEl = document.getElementById('s-name');
+  if (!nameEl) return;
+
+  const name = nameEl.value.trim();
   if (!name) return alert('Shop name is required.');
 
   shops[idx] = {
     ...shops[idx],
     name,
-    category: document.getElementById('s-category').value || 'General',
-    description: document.getElementById('s-desc').value.trim(),
-    phone: document.getElementById('s-phone').value.trim(),
-    serviceArea: document.getElementById('s-area').value.trim(),
-    address: document.getElementById('s-address').value.trim(),
+    category: (document.getElementById('s-category') || {}).value || 'General',
+    description: (document.getElementById('s-desc') || {}).value || '',
+    phone: (document.getElementById('s-phone') || {}).value || '',
+    serviceArea: (document.getElementById('s-area') || {}).value || 'Puducherry',
+    address: (document.getElementById('s-address') || {}).value || '',
     logo: logoData,
     banner: bannerData,
     updatedAt: new Date().toISOString()
   };
-  DB.saveShops(shops);
+
+  await DB.saveShops(shops);
   alert('✅ Shop profile saved!');
-  location.reload();
+  window.location.reload();
 }
+
+// Expose to window
+window.saveProfile = saveProfile;
+
+// Initialize
+window.addEventListener('sjs:ready', function () {
+  if (!window.location.pathname.endsWith('profile.html')) return;
+  if (typeof initDashboard !== 'function') {
+    console.error('dashboard.js not loaded');
+    return;
+  }
+  if (!document.getElementById('content')) return;
+  currentShop = initDashboard('profile');
+  if (currentShop) renderProfile();
 });
