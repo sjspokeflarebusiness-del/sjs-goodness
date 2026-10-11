@@ -41,12 +41,11 @@
 <script src="js/db.js"></script>
 <script src="js/auth.js"></script>
 <script>
-document.getElementById('admin-num').textContent = '8056669214';
-document.getElementById('login-form').addEventListener('submit', e => {
+document.getElementById('login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
-  const result = Auth.login(email, password);
+  const result = await Auth.login(email, password);
   const errEl = document.getElementById('error');
 
   if (result.error === 'pending') {
