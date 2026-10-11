@@ -1,0 +1,10 @@
+# Secrets — never commit these
+js/config-secrets.js
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
