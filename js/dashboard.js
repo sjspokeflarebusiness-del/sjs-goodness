@@ -2,8 +2,6 @@
    SHARED DASHBOARD BOILERPLATE — Firebase
    ============================================ */
 
-const ADMIN_EMAIL = 'flaren@sjs.com';
-
 function initDashboard(pageKey) {
   const shop = Auth.requireLogin();
   if (!shop) return null;
