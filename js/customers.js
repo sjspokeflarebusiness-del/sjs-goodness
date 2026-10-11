@@ -1,3 +1,4 @@
+window.addEventListener('sjs:ready', function () {
 /* ============================================
    CUSTOMERS PAGE
    ============================================ */
@@ -28,3 +29,4 @@ if (window.location.pathname.endsWith('customers.html')) {
     }
   }
 }
+});
