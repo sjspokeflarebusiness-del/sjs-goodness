@@ -1,36 +1,38 @@
-window.addEventListener('sjs:ready', function () {
 /* ============================================
-   SHARED DASHBOARD BOILERPLATE
+   SHARED DASHBOARD BOILERPLATE — Firebase
    ============================================ */
+
+const ADMIN_EMAIL = 'flaren@sjs.com';
 
 function initDashboard(pageKey) {
   const shop = Auth.requireLogin();
   if (!shop) return null;
 
-  // If shop is pending approval, redirect to pending page (except on profile page)
   if (shop.status === 'pending' && pageKey !== 'profile') {
     window.location.href = 'pending.html';
     return null;
   }
 
-  document.getElementById('shop-name').textContent = shop.name;
+  const shopNameEl = document.getElementById('shop-name');
+  if (shopNameEl) shopNameEl.textContent = shop.name;
 
   const nav = document.getElementById('sidebar-nav');
   if (nav) {
-   const items = [
-  { key: 'dashboard', label: 'Overview', icon: '📊', href: 'dashboard.html' },
-  { key: 'products', label: 'Products', icon: '📦', href: 'products.html' },
-  { key: 'orders', label: 'Orders', icon: '🛒', href: 'orders.html' },
-  { key: 'customers', label: 'Customers', icon: '👥', href: 'customers.html' },
-  { key: 'expenses', label: 'Expenses', icon: '💰', href: 'expenses.html' },
-  { key: 'analytics', label: 'Analytics', icon: '📈', href: 'analytics.html' },
-  { key: 'profile', label: 'Shop Profile', icon: '🏪', href: 'profile.html' }
-];
+    const items = [
+      { key: 'dashboard', label: 'Overview', icon: '📊', href: 'dashboard.html' },
+      { key: 'products', label: 'Products', icon: '📦', href: 'products.html' },
+      { key: 'orders', label: 'Orders', icon: '🛒', href: 'orders.html' },
+      { key: 'customers', label: 'Customers', icon: '👥', href: 'customers.html' },
+      { key: 'expenses', label: 'Expenses', icon: '💰', href: 'expenses.html' },
+      { key: 'analytics', label: 'Analytics', icon: '📈', href: 'analytics.html' },
+      { key: 'profile', label: 'Shop Profile', icon: '🏪', href: 'profile.html' }
+    ];
 
-// ⚡ If you are the admin, add the Admin Panel link
-if (Auth.isAdmin()) {
-  items.push({ key: 'admin', label: '🛡️ Admin Panel', icon: '🛡️', href: 'admin.html' });
-}
+    // Add admin link if this is the admin
+    if (shop.ownerEmail === ADMIN_EMAIL) {
+      items.push({ key: 'admin', label: '🛡️ Admin Panel', icon: '🛡️', href: 'admin.html' });
+    }
+
     nav.innerHTML = items.map(it => `
       <a href="${it.href}" class="sidebar-link ${it.key === pageKey ? 'active' : ''}">
         <span>${it.icon}</span> ${it.label}
@@ -47,18 +49,19 @@ if (Auth.isAdmin()) {
     viewLink.innerHTML = `<a href="shop.html?id=${esc(shop.id)}" target="_blank" class="btn btn-ghost btn-sm">View Public Shop ↗</a>`;
   }
 
-  // Notification bell
   const notifContainer = document.getElementById('notif-container');
-  if (notifContainer) renderNotificationBell('notif-container', shop.id);
+  if (notifContainer && typeof renderNotificationBell === 'function') {
+    renderNotificationBell('notif-container', shop.id);
+  }
 
   return shop;
 }
 
-/* ============================================
-   DASHBOARD OVERVIEW
-   ============================================ */
-(function () {
-  if (!document.getElementById('content') || !window.location.pathname.endsWith('dashboard.html')) return;
+// ============ DASHBOARD OVERVIEW ============
+window.addEventListener('sjs:ready', function () {
+  if (!window.location.pathname.endsWith('dashboard.html')) return;
+  if (!document.getElementById('content')) return;
+
   const shop = initDashboard('dashboard');
   if (!shop) return;
 
@@ -113,5 +116,4 @@ if (Auth.isAdmin()) {
       </div>
     ` : ''}
   `;
-})();
 });
