@@ -12,24 +12,53 @@ window.addEventListener('sjs:ready', function () {
       return;
     }
 
-    document.title = shop.name + ' — SJS & CO';
+  document.title = shop.name + ' — SJS & CO';
 
-    // Logo
-    const logoHtml = shop.logo
-      ? `<img src="${esc(shop.logo)}" class="shop-hero-logo" alt="${esc(shop.name)}">`
-      : `<div class="shop-hero-logo">${esc(shop.name[0])}</div>`;
+// Logo
+const logoHtml = shop.logo
+  ? `<img src="${esc(shop.logo)}" class="shop-hero-logo" alt="${esc(shop.name)}">`
+  : `<div class="shop-hero-logo">${esc(shop.name[0])}</div>`;
 
-    // Hero
-    const heroEl = document.getElementById('shop-hero');
-    if (shop.banner) {
-      heroEl.style.backgroundImage = `url('${shop.banner}')`;
-      heroEl.style.backgroundSize = 'cover';
-      heroEl.style.backgroundPosition = 'center';
-      // Add a dark overlay class so text stays readable on any banner
-      heroEl.classList.add('has-banner');
-    } else {
-      heroEl.classList.remove('has-banner');
-    }
+// Hero — SET UP FIRST, THEN APPLY CLASSES
+const heroEl = document.getElementById('shop-hero');
+
+// Build inner HTML FIRST
+heroEl.innerHTML = `
+  <div class="container">
+    <div class="shop-hero-inner">
+      ${logoHtml}
+      <div class="shop-hero-info">
+        <h1>${esc(shop.name)}</h1>
+        <div class="meta">
+          <span>🏪 ${esc(shop.category || 'General')}</span>
+          <span>📍 ${esc(shop.serviceArea || 'Puducherry')}</span>
+          ${shop.phone ? `<span>📞 ${esc(shop.phone)}</span>` : ''}
+        </div>
+        <p class="shop-hero-desc">${esc(shop.description || '')}</p>
+        <span class="shop-hero-badge">✅ Approved Shop</span>
+        <div class="shop-hero-actions">
+          <div class="share-wrap" id="share-wrap">
+            <button class="share-btn share-btn-primary" id="share-btn-main">
+              📤 Share Shop
+            </button>
+          </div>
+          ${shop.phone ? `<a href="https://wa.me/91${esc((shop.phone||'').replace(/\D/g,''))}" target="_blank" class="share-btn" style="text-decoration:none;">💬 WhatsApp</a>` : ''}
+        </div>
+      </div>
+    </div>
+  </div>
+`;
+
+// NOW apply banner + classes AFTER innerHTML is set
+if (shop.banner) {
+  heroEl.style.backgroundImage = `url('${shop.banner}')`;
+  heroEl.style.backgroundSize = 'cover';
+  heroEl.style.backgroundPosition = 'center';
+  heroEl.classList.add('has-banner');
+} else {
+  heroEl.style.backgroundImage = '';
+  heroEl.classList.remove('has-banner');
+}
 
     // Detect if banner is dark and add appropriate text class
     if (shop.banner) {
