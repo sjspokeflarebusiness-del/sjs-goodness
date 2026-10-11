@@ -14,3 +14,22 @@
     if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
   } catch (e) {}
 })();
+/* ============================================
+   MINDPAL AI CHATBOT — loads on every page
+   ============================================ */
+(function () {
+  // Skip on login/register/admin pages
+  var path = window.location.pathname.split('/').pop() || 'index.html';
+  var skipPages = ['login.html', 'register.html', 'admin.html', 'pending.html'];
+  if (skipPages.indexOf(path) !== -1) return;
+
+  window.mindpalConfig = {
+    chatbotId: "flaren-design-studio-assistant-efe",
+    display: { type: "floating-corner", anchor: "right" },
+    behavior: { showInitialMessageBubbleWhenMinimized: true, minimizedByDefault: true }
+  };
+
+  var s = document.createElement('script');
+  s.src = 'https://chatbot.getmindpal.com/embed.min.js';
+  document.head.appendChild(s);
+})();
