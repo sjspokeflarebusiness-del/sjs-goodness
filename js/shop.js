@@ -1,3 +1,4 @@
+window.addEventListener('sjs:ready', function () {
 /* ============================================
    SHOP DETAIL PAGE
    ============================================ */
@@ -200,3 +201,4 @@
 
   renderCart();
 })();
+});
