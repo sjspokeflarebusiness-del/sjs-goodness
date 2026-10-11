@@ -1,3 +1,4 @@
+window.addEventListener('sjs:ready', function () {
 /* ============================================
    ANALYTICS PAGE
    ============================================ */
@@ -76,3 +77,4 @@ function renderAnalytics(currentShop) {
     });
   }
 }
+});
