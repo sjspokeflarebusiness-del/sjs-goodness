@@ -38,41 +38,52 @@
 <script src="js/tail-loader.js"></script>
   
 <script>
-document.getElementById('category').innerHTML = '<option value="">Select category…</option>' + getCategoryOptions();
+window.addEventListener('sjs:ready', function () {
+  document.getElementById('category').innerHTML = '<option value="">Select category…</option>' + getCategoryOptions();
 
-document.getElementById('register-form').addEventListener('submit', e => {
-  e.preventDefault();
-  const data = {
-    name: document.getElementById('name').value.trim(),
-    category: document.getElementById('category').value,
-    description: document.getElementById('description').value.trim(),
-    phone: document.getElementById('phone').value.trim(),
-    email: document.getElementById('email').value.trim(),
-    password: document.getElementById('password').value
-  };
-  const result = Auth.register(data);
-  if (result.error) {
-    const err = document.getElementById('error');
-    err.textContent = result.error;
-    err.style.display = 'block';
-    return;
-  }
-  // Show success page
-  document.querySelector('.form-container').innerHTML = `
-    <div style="text-align:center;">
-      <div style="font-size:4rem;margin-bottom:1rem;">📞</div>
-      <h1 class="form-title">Almost there!</h1>
-      <p class="form-subtitle">Your shop <strong>${esc(data.name)}</strong> has been submitted for approval.</p>
-      <div class="form-warning" style="text-align:left;">
-        <strong>Next step — Contact us now:</strong><br>
-        WhatsApp <strong>8056669214</strong> with your shop name.<br>
-        We'll verify and approve you within 24 hours.<br><br>
-        Once approved, you'll get a notification. Then you can log in.
+  document.getElementById('register-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+      name: document.getElementById('name').value.trim(),
+      category: document.getElementById('category').value,
+      description: document.getElementById('description').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value
+    };
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting…';
+
+    const result = await Auth.register(data);
+
+    if (result.error) {
+      const err = document.getElementById('error');
+      err.textContent = result.error;
+      err.style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Registration';
+      return;
+    }
+
+    // Show success page
+    document.querySelector('.form-container').innerHTML = `
+      <div style="text-align:center;">
+        <div style="font-size:4rem;margin-bottom:1rem;">📞</div>
+        <h1 class="form-title">Almost there!</h1>
+        <p class="form-subtitle">Your shop <strong>${esc(data.name)}</strong> has been submitted for approval.</p>
+        <div class="form-warning" style="text-align:left;">
+          <strong>Next step — Contact us now:</strong><br>
+          WhatsApp <strong>8056669214</strong> with your shop name.<br>
+          We'll verify and approve you within 24 hours.<br><br>
+          Once approved, you'll get a notification. Then you can log in.
+        </div>
+        <a href="https://wa.me/918056669214?text=${encodeURIComponent('Hi, I just registered my shop: ' + data.name)}" target="_blank" class="btn btn-success btn-block mt-4">📱 WhatsApp 8056669214</a>
+        <a href="login.html" class="btn btn-ghost btn-block mt-2">Go to Login</a>
       </div>
-      <a href="https://wa.me/918056669214?text=Hi, I just registered my shop: ${encodeURIComponent(data.name)}" target="_blank" class="btn btn-success btn-block mt-4">📱 WhatsApp 8056669214</a>
-      <a href="login.html" class="btn btn-ghost btn-block mt-2">Go to Login</a>
-    </div>
-  `;
+    `;
+  });
 });
 </script>
 </body>
