@@ -1,3 +1,4 @@
+window.addEventListener('sjs:ready', function () {
 /* ============================================
    SHOP PROFILE EDITOR (with Image Upload)
    ============================================ */
@@ -87,3 +88,4 @@ function saveProfile() {
   alert('✅ Shop profile saved!');
   location.reload();
 }
+});
