@@ -1,3 +1,4 @@
+window.addEventListener('sjs:ready', function () {
 /* ============================================
    EXPENSES PAGE
    ============================================ */
@@ -88,3 +89,4 @@ function deleteExpense(id) {
   DB.saveExpenses(DB.getExpenses().filter(e => e.id !== id));
   renderExpenses();
 }
+});
