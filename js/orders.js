@@ -1,3 +1,4 @@
+window.addEventListener('sjs:ready', function () {
 /* ============================================
    ORDERS PAGE
    ============================================ */
@@ -120,3 +121,4 @@ if (window.location.pathname.endsWith('orders.html')) {
   currentShop = initDashboard('orders');
   if (currentShop) renderOrders();
 }
+});
