@@ -2,33 +2,27 @@
 <html lang="en">
 <head>
   <script src="js/head-loader.js"></script>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Products — SJS Goodness</title>
-<link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products — SJS Goodness</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div class="dash-layout">
-  <aside class="sidebar">
-    <div class="brand" style="padding:0.5rem 0;">
-      <div class="brand-logo">S</div>
-      <div><div class="brand-name" style="font-size:0.9rem;">SJS Goodness</div></div>
-    </div>
-    <nav class="sidebar-nav" id="sidebar-nav"></nav>
-  </aside>
-  <div class="dash-main">
-    <header class="dash-header">
-      <div><h1 id="shop-name" style="font-size:1.15rem;"></h1><p class="text-xs text-muted">Products</p></div>
-      <div style="display:flex;gap:0.75rem;align-items:center;">
+  <div class="dash-layout">
+    <aside class="sidebar">
+      <div class="brand">...</div>
+      <nav class="sidebar-nav" id="sidebar-nav"></nav>
+    </aside>
+    <div class="dash-main">
+      <header class="dash-header">
+        <div><h1 id="shop-name"></h1><p class="text-xs text-muted">Products</p></div>
         <div id="notif-container"></div>
-        <button class="btn btn-primary btn-sm" onclick="openProductForm()">+ Add Product</button>
-      </div>
-    </header>
-    <main class="dash-content" id="content"></main>
+      </header>
+      <main class="dash-content" id="content"></main>
+    </div>
   </div>
-</div>
-<div id="modal-root"></div>
+  <div id="modal-root"></div>
 
-<script src="js/tail-loader.js"></script>
+  <script src="js/tail-loader.js"></script>
 </body>
 </html>
