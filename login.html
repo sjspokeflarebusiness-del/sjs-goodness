@@ -47,9 +47,8 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   const password = document.getElementById('password').value;
   const result = await Auth.login(email, password);
   const errEl = document.getElementById('error');
-
   if (result.error === 'pending') {
-    errEl.innerHTML = '⏳ Your shop is <strong>pending admin approval</strong>.<br>Contact <strong>8056669214</strong> to get approved.';
+    errEl.innerHTML = '⏳ Your shop is <strong>pending admin approval</strong>.<br>Contact <strong>8056669214</strong>.';
     errEl.style.display = 'block';
     return;
   }
