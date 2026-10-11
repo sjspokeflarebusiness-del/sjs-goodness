@@ -1,3 +1,4 @@
+window.addEventListener('sjs:ready', function () {
 /* ============================================
    SJS GOODNESS — MARKETPLACE HOMEPAGE
    ============================================ */
@@ -50,3 +51,4 @@
   searchInput.addEventListener('input', e => render(e.target.value));
   render();
 })();
+});
