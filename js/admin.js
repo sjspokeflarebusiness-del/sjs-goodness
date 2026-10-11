@@ -1,26 +1,8 @@
-window.addEventListener('sjs:ready', function () {
 /* ============================================
-   ADMIN CONTROL CENTER
+   ADMIN CONTROL CENTER — Firebase
    ============================================ */
 
-const adminShop = Auth.currentShop();
-if (!adminShop || !Auth.isAdmin()) {
-  window.location.href = 'login.html';
-  throw new Error('Not admin');
-}
-
-// Sidebar
-document.getElementById('admin-nav').innerHTML = `
-  <a href="admin.html" class="sidebar-link active"><span>📊</span> Dashboard</a>
-  <a href="admin.html#requests" class="sidebar-link"><span>📥</span> Shop Requests</a>
-  <a href="admin.html#shops" class="sidebar-link"><span>🏪</span> All Shops</a>
-  <a href="admin.html#users" class="sidebar-link"><span>👥</span> Owners</a>
-  <a href="admin.html#products" class="sidebar-link"><span>📦</span> All Products</a>
- <button class="sidebar-link sidebar-logout" onclick="Auth.logout()"><span>🚪</span> Logout</button>
-<a href="dashboard.html" class="sidebar-link"><span>🏪</span> Back to Shop Dashboard</a>
-`;
-
-renderNotificationBell('notif-container', 'admin');
+let currentAdmin = null;
 
 function renderAdmin() {
   const shops = DB.getShops();
@@ -29,8 +11,10 @@ function renderAdmin() {
   const customers = DB.getCustomers();
 
   const pending = shops.filter(s => s.status === 'pending');
+  const contentEl = document.getElementById('content');
+  if (!contentEl) return;
 
-  document.getElementById('content').innerHTML = `
+  contentEl.innerHTML = `
     <div class="metrics-grid">
       <div class="metric metric-orange"><div class="metric-label">Total Shops</div><div class="metric-value">${shops.length}</div></div>
       <div class="metric metric-red"><div class="metric-label">Pending Approval</div><div class="metric-value">${pending.length}</div></div>
@@ -134,53 +118,51 @@ function renderAdmin() {
   }
 }
 
-// ---------- SHOP APPROVAL ----------
-function approveShop(id) {
+async function approveShop(id) {
   const shops = DB.getShops();
   const idx = shops.findIndex(s => s.id === id);
   if (idx < 0) return;
   shops[idx].isApproved = true;
   shops[idx].status = 'approved';
   shops[idx].approvedAt = new Date().toISOString();
-  DB.saveShops(shops);
-  DB.addNotification(id, 'approved', '🎉 Your shop is approved!',
+  await DB.saveShops(shops);
+  await DB.addNotification(id, 'approved', '🎉 Your shop is approved!',
     'Your shop has been approved by admin. You can now log in and add products.');
   renderAdmin();
 }
 
-function rejectShop(id) {
+async function rejectShop(id) {
   if (!confirm('Reject this shop application?')) return;
   const shops = DB.getShops();
   const idx = shops.findIndex(s => s.id === id);
   if (idx < 0) return;
   shops[idx].isApproved = false;
   shops[idx].status = 'rejected';
-  DB.saveShops(shops);
-  DB.addNotification(id, 'rejected', 'Application not approved',
+  await DB.saveShops(shops);
+  await DB.addNotification(id, 'rejected', 'Application not approved',
     'Your shop application was not approved. Contact admin at 8056669214.');
   renderAdmin();
 }
 
-// ---------- DELETE HELPERS ----------
-function deleteShop(id) {
+async function deleteShop(id) {
   if (!confirm('DELETE this shop AND all its products/orders? This cannot be undone.')) return;
-  DB.saveShops(DB.getShops().filter(s => s.id !== id));
-  DB.saveProducts(DB.getProducts().filter(p => p.shopId !== id));
-  DB.saveOrders(DB.getOrders().filter(o => o.shopId !== id));
-  DB.saveCustomers(DB.getCustomers().filter(c => c.shopId !== id));
-  DB.saveExpenses(DB.getExpenses().filter(e => e.shopId !== id));
+  await DB.saveShops(DB.getShops().filter(s => s.id !== id));
+  await DB.saveProducts(DB.getProducts().filter(p => p.shopId !== id));
+  await DB.saveOrders(DB.getOrders().filter(o => o.shopId !== id));
+  await DB.saveCustomers(DB.getCustomers().filter(c => c.shopId !== id));
+  await DB.saveExpenses(DB.getExpenses().filter(e => e.shopId !== id));
   renderAdmin();
 }
 
-function deleteProductAdmin(id) {
+async function deleteProductAdmin(id) {
   if (!confirm('Delete this product?')) return;
-  DB.saveProducts(DB.getProducts().filter(p => p.id !== id));
+  await DB.saveProducts(DB.getProducts().filter(p => p.id !== id));
   renderAdmin();
 }
 
-function deleteCustomer(id) {
+async function deleteCustomer(id) {
   if (!confirm('Delete this customer record?')) return;
-  DB.saveCustomers(DB.getCustomers().filter(c => c.id !== id));
+  await DB.saveCustomers(DB.getCustomers().filter(c => c.id !== id));
   renderAdmin();
 }
 
@@ -192,7 +174,7 @@ function viewShopProducts(shopId) {
       <div class="modal">
         <div class="modal-header">
           <h2>${esc(shop.name)} — Products (${products.length})</h2>
-          <button class="modal-close" onclick="document.getElementById('modal-root').innerHTML=''">×</button>
+          <button class="modal-close" onclick="closeAdminModal()">×</button>
         </div>
         ${products.length === 0 ? '<p class="text-muted text-sm">No products.</p>' :
           products.map(p => `
@@ -202,23 +184,25 @@ function viewShopProducts(shopId) {
             </div>
           `).join('')}
         <div class="modal-footer">
-          <button class="btn btn-ghost" onclick="document.getElementById('modal-root').innerHTML=''">Close</button>
+          <button class="btn btn-ghost" onclick="closeAdminModal()">Close</button>
         </div>
       </div>
     </div>`;
 }
 
-// ---------- QUICK DELETE MODAL ----------
+function closeAdminModal() {
+  document.getElementById('modal-root').innerHTML = '';
+}
+
 function openQuickDelete() {
   document.getElementById('modal-root').innerHTML = `
     <div class="modal-overlay">
       <div class="modal">
         <div class="modal-header">
           <h2>🗑️ Admin Quick Delete</h2>
-          <button class="modal-close" onclick="document.getElementById('modal-root').innerHTML=''">×</button>
+          <button class="modal-close" onclick="closeAdminModal()">×</button>
         </div>
         <p class="text-sm text-muted mb-4">Choose what to delete. Be careful — deletions are permanent.</p>
-
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
           <button class="btn btn-ghost" onclick="quickList('shops')">🏪 Shops (${DB.getShops().length})</button>
           <button class="btn btn-ghost" onclick="quickList('products')">📦 Products (${DB.getProducts().length})</button>
@@ -246,7 +230,7 @@ function quickList(type) {
       <div class="modal">
         <div class="modal-header">
           <h2>Delete ${type} (${list.length})</h2>
-          <button class="modal-close" onclick="document.getElementById('modal-root').innerHTML=''">×</button>
+          <button class="modal-close" onclick="closeAdminModal()">×</button>
         </div>
         ${list.length === 0 ? '<p class="text-muted text-sm">Nothing to delete.</p>' :
           `<div style="max-height:400px;overflow-y:auto;">
@@ -264,37 +248,74 @@ function quickList(type) {
     </div>`;
 }
 
-function deleteItem(type, id) {
+async function deleteItem(type, id) {
   if (!confirm('Delete this item permanently?')) return;
-  if (type === 'shops') deleteShop(id);
-  else if (type === 'products') deleteProductAdmin(id);
-  else if (type === 'orders') {
-    DB.saveOrders(DB.getOrders().filter(o => o.id !== id));
+  if (type === 'shops') return deleteShop(id);
+  if (type === 'products') return deleteProductAdmin(id);
+  if (type === 'orders') {
+    await DB.saveOrders(DB.getOrders().filter(o => o.id !== id));
     renderAdmin();
   }
-  else if (type === 'customers') deleteCustomer(id);
-  else if (type === 'expenses') {
-    DB.saveExpenses(DB.getExpenses().filter(e => e.id !== id));
+  if (type === 'customers') return deleteCustomer(id);
+  if (type === 'expenses') {
+    await DB.saveExpenses(DB.getExpenses().filter(e => e.id !== id));
     renderAdmin();
   }
-  document.getElementById('modal-root').innerHTML = '';
+  closeAdminModal();
   quickList(type);
 }
 
-function nukeAll() {
+async function nukeAll() {
   if (!confirm('⚠️ DELETE EVERYTHING?\n\nThis removes ALL shops, products, orders, customers, and expenses. This CANNOT be undone.')) return;
   if (!confirm('Are you ABSOLUTELY sure? This is your last warning.')) return;
-  localStorage.removeItem('sjs_shops');
-  localStorage.removeItem('sjs_products');
-  localStorage.removeItem('sjs_orders');
-  localStorage.removeItem('sjs_customers');
-  localStorage.removeItem('sjs_expenses');
-  localStorage.removeItem('sjs_notifications');
-  DB.seed();
-  document.getElementById('modal-root').innerHTML = '';
+  await DB.saveShops([]);
+  await DB.saveProducts([]);
+  await DB.saveOrders([]);
+  await DB.saveCustomers([]);
+  await DB.saveExpenses([]);
+  await DB.saveNotifications([]);
+  closeAdminModal();
   renderAdmin();
 }
 
-// ---------- INITIAL RENDER ----------
-renderAdmin();
+// Expose to window
+window.approveShop = approveShop;
+window.rejectShop = rejectShop;
+window.deleteShop = deleteShop;
+window.deleteProductAdmin = deleteProductAdmin;
+window.deleteCustomer = deleteCustomer;
+window.viewShopProducts = viewShopProducts;
+window.closeAdminModal = closeAdminModal;
+window.openQuickDelete = openQuickDelete;
+window.quickList = quickList;
+window.deleteItem = deleteItem;
+window.nukeAll = nukeAll;
+
+// Initialize
+window.addEventListener('sjs:ready', function () {
+  const shop = Auth.currentShop();
+  if (!shop || shop.ownerEmail !== 'flaren@sjs.com') {
+    window.location.href = 'login.html';
+    return;
+  }
+  currentAdmin = shop;
+
+  const nav = document.getElementById('admin-nav');
+  if (nav) {
+    nav.innerHTML = `
+      <a href="admin.html" class="sidebar-link active"><span>📊</span> Dashboard</a>
+      <a href="admin.html#requests" class="sidebar-link"><span>📥</span> Shop Requests</a>
+      <a href="admin.html#shops" class="sidebar-link"><span>🏪</span> All Shops</a>
+      <a href="admin.html#users" class="sidebar-link"><span>👥</span> Owners</a>
+      <a href="admin.html#products" class="sidebar-link"><span>📦</span> All Products</a>
+      <button class="sidebar-link sidebar-logout" onclick="Auth.logout()"><span>🚪</span> Logout</button>
+      <a href="dashboard.html" class="sidebar-link"><span>🏪</span> Back to Shop Dashboard</a>
+    `;
+  }
+
+  if (typeof renderNotificationBell === 'function') {
+    renderNotificationBell('notif-container', 'admin');
+  }
+
+  renderAdmin();
 });
