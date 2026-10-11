@@ -1,3 +1,4 @@
+window.addEventListener('sjs:ready', function () {
 /* ============================================
    PRODUCTS PAGE
    ============================================ */
@@ -274,3 +275,4 @@ function initProductsPage() {
   currentShop = initDashboard('products');
   if (currentShop) renderProducts();
 }
+});
