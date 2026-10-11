@@ -1,9 +1,8 @@
 /* ============================================
-   AUTHENTICATION — unified admin + shop
+   AUTH — Firebase edition
    ============================================ */
 
-// ⚙️ CHANGE THIS: the email of the admin account
-const ADMIN_EMAIL = 'flaren@sjs.com';
+const ADMIN_CONTACT = '8056669214';
 
 const Auth = {
   currentShop() {
@@ -12,14 +11,8 @@ const Auth = {
     return DB.getShop(session.shopId);
   },
 
-  // Is the current logged-in shop the admin?
-  isAdmin() {
-    const shop = Auth.currentShop();
-    if (!shop) return false;
-    return shop.ownerEmail === ADMIN_EMAIL;
-  },
-
-  login(email, password) {
+  // ---- LOGIN using Firestore (keeps simple) ----
+  async login(email, password) {
     const shops = DB.getShops();
     const shop = shops.find(s =>
       s.ownerEmail === email.trim().toLowerCase() &&
@@ -27,7 +20,7 @@ const Auth = {
     );
     if (!shop) return { error: 'Invalid email or password.' };
     if (shop.status === 'pending') return { error: 'pending', shop };
-    if (shop.status === 'rejected') return { error: 'Your shop registration was not approved. Contact admin.' };
+    if (shop.status === 'rejected') return { error: 'Your shop was not approved. Contact admin.' };
     DB.setSession({ shopId: shop.id, loginAt: new Date().toISOString() });
     return { shop };
   },
@@ -37,13 +30,13 @@ const Auth = {
     window.location.href = 'index.html';
   },
 
-  register(data) {
+  async register(data) {
     const shops = DB.getShops();
     if (shops.some(s => s.ownerEmail === data.email.toLowerCase())) {
       return { error: 'This email is already registered.' };
     }
     const shop = {
-      id: 'shop_' + uid(),
+      id: 'shop_' + Math.random().toString(36).slice(2, 10),
       ownerEmail: data.email.toLowerCase(),
       ownerPassword: data.password,
       name: data.name,
@@ -58,9 +51,8 @@ const Auth = {
       status: 'pending',
       createdAt: new Date().toISOString()
     };
-    shops.push(shop);
-    DB.saveShops(shops);
-    DB.addNotification(null, 'new_shop_request',
+    await DB.saveShops([...shops, shop]);
+    await DB.addNotification(null, 'new_shop_request',
       'New Shop Request',
       `${shop.name} (${shop.phone}) wants to join. Contact: ${shop.phone}`);
     return { shop };
