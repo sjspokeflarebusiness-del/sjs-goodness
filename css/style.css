@@ -647,7 +647,6 @@ body {
   background: linear-gradient(135deg, #fed7aa 0%, #fecaca 100%);
   padding: 2rem 0;
   position: relative;
-  overflow: hidden;
 }
 
 .shop-hero-inner {
