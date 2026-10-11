@@ -1,18 +1,15 @@
 /* ============================================
-   EXPENSES PAGE
+   EXPENSES PAGE — Firebase
    ============================================ */
 
-let expShop;
-
-if (window.location.pathname.endsWith('expenses.html')) {
-  expShop = initDashboard('expenses');
-  if (expShop) renderExpenses();
-}
+let currentShop = null;
 
 function renderExpenses() {
-  const expenses = DB.getExpensesForShop(expShop.id);
+  if (!currentShop) return;
+  const expenses = DB.getExpensesForShop(currentShop.id);
   const total = expenses.reduce((s, e) => s + Number(e.amount), 0);
   const c = document.getElementById('content');
+  if (!c) return;
 
   if (expenses.length === 0) {
     c.innerHTML = '<div class="empty-state">No expenses recorded yet.</div>';
@@ -45,7 +42,7 @@ function openExpenseForm() {
       <div class="modal">
         <div class="modal-header">
           <h2>Add Expense</h2>
-          <button class="modal-close" onclick="document.getElementById('modal-root').innerHTML=''">×</button>
+          <button class="modal-close" onclick="closeExpenseModal()">×</button>
         </div>
         <div class="form-group"><label>Title *</label><input id="e-title" class="form-input"></div>
         <div class="form-group"><label>Category</label>
@@ -58,34 +55,59 @@ function openExpenseForm() {
         <div class="form-group"><label>Date</label><input type="date" id="e-date" class="form-input" value="${today()}"></div>
         <div class="form-group"><label>Notes</label><input id="e-notes" class="form-input"></div>
         <div class="modal-footer">
-          <button class="btn btn-ghost" onclick="document.getElementById('modal-root').innerHTML=''">Cancel</button>
+          <button class="btn btn-ghost" onclick="closeExpenseModal()">Cancel</button>
           <button class="btn btn-primary" onclick="saveExpense()">Save</button>
         </div>
       </div>
     </div>`;
 }
 
-function saveExpense() {
+function closeExpenseModal() {
+  document.getElementById('modal-root').innerHTML = '';
+}
+
+async function saveExpense() {
+  if (!currentShop) return alert('Shop not loaded. Refresh the page.');
   const title = document.getElementById('e-title').value.trim();
   const amount = Number(document.getElementById('e-amount').value);
   if (!title || !amount) return alert('Title and amount required.');
+
   const all = DB.getExpenses();
   all.push({
-    id: uid(), shopId: expShop.id,
-    title, amount,
+    id: uid(),
+    shopId: currentShop.id,
+    title,
+    amount,
     category: document.getElementById('e-category').value,
     date: document.getElementById('e-date').value,
     notes: document.getElementById('e-notes').value.trim(),
     createdAt: new Date().toISOString()
   });
-  DB.saveExpenses(all);
-  document.getElementById('modal-root').innerHTML = '';
+  await DB.saveExpenses(all);
+  closeExpenseModal();
   renderExpenses();
 }
 
-function deleteExpense(id) {
+async function deleteExpense(id) {
   if (!confirm('Delete this expense?')) return;
-  DB.saveExpenses(DB.getExpenses().filter(e => e.id !== id));
+  await DB.saveExpenses(DB.getExpenses().filter(e => e.id !== id));
   renderExpenses();
 }
 
+// Expose to window
+window.openExpenseForm = openExpenseForm;
+window.closeExpenseModal = closeExpenseModal;
+window.saveExpense = saveExpense;
+window.deleteExpense = deleteExpense;
+
+// Initialize ONLY on expenses.html, AFTER sjs:ready
+window.addEventListener('sjs:ready', function () {
+  if (!window.location.pathname.endsWith('expenses.html')) return;
+  if (typeof initDashboard !== 'function') {
+    console.error('dashboard.js not loaded');
+    return;
+  }
+  if (!document.getElementById('content')) return;
+  currentShop = initDashboard('expenses');
+  if (currentShop) renderExpenses();
+});
