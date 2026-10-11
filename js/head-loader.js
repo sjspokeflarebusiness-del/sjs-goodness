@@ -2,10 +2,11 @@
    HEAD LOADER — runs immediately, injects favicon + theme + MindPal
    ============================================ */
 (function () {
-  // ---------- FAVICON (inline SVG, no 404) ----------
+  // ---------- FAVICON (uses your uploaded logo) ----------
   var link = document.createElement('link');
   link.rel = 'icon';
-  link.href = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23fc8019'/%3E%3Ctext x='50' y='68' font-size='60' font-family='system-ui' font-weight='bold' text-anchor='middle' fill='white'%3ES%3C/text%3E%3C/svg%3E";
+  link.type = 'image/png';
+  link.href = 'css/sjs.png';
   document.head.appendChild(link);
 
   // ---------- THEME (prevent white flash) ----------
