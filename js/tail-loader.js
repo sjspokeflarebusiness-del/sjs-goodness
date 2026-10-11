@@ -18,7 +18,6 @@
     'js/categories.js',
     'js/auth.js',
     'js/notifications.js',
-    'js/ai-bot.js'
   ];
 
   var path = window.location.pathname.split('/').pop() || 'index.html';
