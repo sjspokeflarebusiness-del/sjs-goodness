@@ -1,9 +1,9 @@
-window.addEventListener('sjs:ready', function () {
 /* ============================================
-   ORDERS PAGE
+   ORDERS PAGE — Firebase
    ============================================ */
 
-let currentShop, orderFilter = 'all';
+let currentShop = null;
+let orderFilter = 'all';
 
 function statusBadge(s) {
   const map = {
@@ -12,15 +12,18 @@ function statusBadge(s) {
   };
   return `<span class="badge ${map[s] || 'badge-gray'}">${s.replace(/_/g, ' ')}</span>`;
 }
+
 function payBadge(s) {
   const map = { unpaid: 'badge-red', partially_paid: 'badge-yellow', paid: 'badge-green', refunded: 'badge-gray' };
   return `<span class="badge ${map[s] || 'badge-gray'}">${s.replace(/_/g, ' ')}</span>`;
 }
 
 function renderOrders() {
+  if (!currentShop) return;
   const all = DB.getOrdersForShop(currentShop.id);
   const filtered = orderFilter === 'all' ? all : all.filter(o => o.orderStatus === orderFilter);
   const c = document.getElementById('content');
+  if (!c) return;
 
   const filters = ['all', 'placed', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'];
 
@@ -49,7 +52,10 @@ function renderOrders() {
     }`;
 }
 
-function setFilter(f) { orderFilter = f; renderOrders(); }
+function setFilter(f) {
+  orderFilter = f;
+  renderOrders();
+}
 
 function openOrder(id) {
   const o = DB.getOrders().find(x => x.id === id);
@@ -63,13 +69,13 @@ function openOrder(id) {
       <div class="modal">
         <div class="modal-header">
           <h2>Order #${esc(o.orderNumber)}</h2>
-          <button class="modal-close" onclick="document.getElementById('modal-root').innerHTML=''">×</button>
+          <button class="modal-close" onclick="closeOrderModal()">×</button>
         </div>
         <div style="background:var(--gray-50);padding:0.85rem;border-radius:10px;margin-bottom:1rem;font-size:0.9rem;">
           <div><strong>${esc(o.customerName)}</strong> · ${esc(o.customerPhone)}</div>
           ${o.deliveryAddress ? `<div class="text-muted text-sm">${esc(o.deliveryAddress)}</div>` : ''}
           ${o.notes ? `<div class="text-muted text-sm" style="font-style:italic;">"${esc(o.notes)}"</div>` : ''}
-          <a href="https://wa.me/91${esc((o.customerPhone||'').replace(/\\D/g,''))}" target="_blank" class="btn btn-success btn-sm mt-2">📱 WhatsApp Customer</a>
+          <a href="https://wa.me/91${esc((o.customerPhone || '').replace(/\D/g, ''))}" target="_blank" class="btn btn-success btn-sm mt-2">📱 WhatsApp Customer</a>
         </div>
         <div class="mb-4">
           ${(o.items || []).map(i => `
@@ -96,29 +102,45 @@ function openOrder(id) {
     </div>`;
 }
 
-function updateOrderStatus(orderId, status) {
+function closeOrderModal() {
+  document.getElementById('modal-root').innerHTML = '';
+}
+
+async function updateOrderStatus(orderId, status) {
   const all = DB.getOrders();
   const idx = all.findIndex(o => o.id === orderId);
+  if (idx < 0) return;
   all[idx].orderStatus = status;
   all[idx].updatedAt = new Date().toISOString();
-  DB.saveOrders(all);
+  await DB.saveOrders(all);
   openOrder(orderId);
   renderOrders();
 }
 
-function updatePaymentStatus(orderId, status) {
+async function updatePaymentStatus(orderId, status) {
   const all = DB.getOrders();
   const idx = all.findIndex(o => o.id === orderId);
+  if (idx < 0) return;
   all[idx].paymentStatus = status;
   if (status === 'paid') all[idx].amountPaid = all[idx].total;
   else if (status === 'unpaid') all[idx].amountPaid = 0;
-  DB.saveOrders(all);
+  await DB.saveOrders(all);
   openOrder(orderId);
   renderOrders();
 }
 
-if (window.location.pathname.endsWith('orders.html')) {
+// Expose to window
+window.setFilter = setFilter;
+window.openOrder = openOrder;
+window.closeOrderModal = closeOrderModal;
+window.updateOrderStatus = updateOrderStatus;
+window.updatePaymentStatus = updatePaymentStatus;
+
+// Initialize
+window.addEventListener('sjs:ready', function () {
+  if (!window.location.pathname.endsWith('orders.html')) return;
+  if (typeof initDashboard !== 'function') return;
+  if (!document.getElementById('content')) return;
   currentShop = initDashboard('orders');
   if (currentShop) renderOrders();
-}
 });
