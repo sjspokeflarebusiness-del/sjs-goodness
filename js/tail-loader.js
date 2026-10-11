@@ -1,9 +1,10 @@
 /* ============================================
-   TAIL LOADER — injects all scripts in correct order
+   TAIL LOADER v2 — waits for cloud DB to load
    ============================================ */
 (function () {
-  // Common scripts (loaded on every page)
+
   var common = [
+    'js/config.js',       // ← MUST be first (has API keys)
     'js/db.js',
     'js/utils.js',
     'js/categories.js',
@@ -12,7 +13,6 @@
     'js/ai-bot.js'
   ];
 
-  // Page-specific scripts
   var path = window.location.pathname.split('/').pop() || 'index.html';
   var pageScripts = {
     'index.html':     ['js/marketplace.js'],
@@ -31,18 +31,26 @@
     'pending.html':   []
   };
 
-  // Final list: common + page-specific + hamburger LAST
-  var scripts = common.concat(pageScripts[path] || ['js/hamburger.js']);
-  // Always append hamburger at the very end
-  if (scripts.indexOf('js/hamburger.js') === -1) {
-    scripts.push('js/hamburger.js');
-  }
+  var scripts = common.concat(pageScripts[path] || []);
+  scripts.push('js/hamburger.js');
 
-  // Inject one after another (sequential — order matters!)
   function loadNext(i) {
     if (i >= scripts.length) {
-      // All loaded — fire ready event
-      window.dispatchEvent(new Event('sjs:ready'));
+      // All scripts loaded. Now wait for DB.init() (async cloud load)
+      console.log('📦 All scripts loaded, initializing cloud DB...');
+      showLoadingOverlay();
+
+      DB.init().then(function () {
+        hideLoadingOverlay();
+        // Re-render page-specific content after data is loaded
+        if (window.onDBReady) window.onDBReady();
+        window.dispatchEvent(new Event('sjs:ready'));
+        window.dispatchEvent(new Event('sjs:datachanged'));
+      }).catch(function (err) {
+        console.error('DB init failed:', err);
+        hideLoadingOverlay();
+        window.dispatchEvent(new Event('sjs:ready'));
+      });
       return;
     }
     var s = document.createElement('script');
@@ -54,5 +62,20 @@
     };
     document.body.appendChild(s);
   }
+
+  function showLoadingOverlay() {
+    if (document.getElementById('sjs-loading')) return;
+    var el = document.createElement('div');
+    el.id = 'sjs-loading';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,0.95);z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem;font-family:system-ui;';
+    el.innerHTML = '<div style="width:50px;height:50px;border:4px solid #fc8019;border-top-color:transparent;border-radius:50%;animation:sjsSpin 1s linear infinite;"></div><div style="color:#666;font-size:14px;">Loading your shop...</div><style>@keyframes sjsSpin{to{transform:rotate(360deg)}}</style>';
+    document.body.appendChild(el);
+  }
+
+  function hideLoadingOverlay() {
+    var el = document.getElementById('sjs-loading');
+    if (el) el.remove();
+  }
+
   loadNext(0);
 })();
