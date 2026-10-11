@@ -1,5 +1,5 @@
 /* ============================================
-   SHOP DETAIL PAGE — Firebase + Share
+   SHOP DETAIL PAGE — Firebase + Share + Smart Overlay
    ============================================ */
 
 window.addEventListener('sjs:ready', function () {
@@ -25,6 +25,21 @@ window.addEventListener('sjs:ready', function () {
       heroEl.style.backgroundImage = `url('${shop.banner}')`;
       heroEl.style.backgroundSize = 'cover';
       heroEl.style.backgroundPosition = 'center';
+      // Add a dark overlay class so text stays readable on any banner
+      heroEl.classList.add('has-banner');
+    } else {
+      heroEl.classList.remove('has-banner');
+    }
+
+    // Detect if banner is dark and add appropriate text class
+    if (shop.banner) {
+      detectBannerBrightness(shop.banner).then(isDark => {
+        if (isDark) heroEl.classList.add('dark-banner');
+        else heroEl.classList.add('light-banner');
+      }).catch(() => {
+        // Fallback: assume dark-ish banner, apply overlay
+        heroEl.classList.add('dark-banner');
+      });
     }
 
     heroEl.innerHTML = `
@@ -38,7 +53,7 @@ window.addEventListener('sjs:ready', function () {
               <span>📍 ${esc(shop.serviceArea || 'Puducherry')}</span>
               ${shop.phone ? `<span>📞 ${esc(shop.phone)}</span>` : ''}
             </div>
-            <p style="margin-top:0.5rem;color:var(--gray-700);font-size:0.92rem;max-width:600px;">${esc(shop.description || '')}</p>
+            <p class="shop-hero-desc">${esc(shop.description || '')}</p>
             <span class="shop-hero-badge">✅ Approved Shop</span>
 
             <div class="shop-hero-actions">
@@ -54,7 +69,43 @@ window.addEventListener('sjs:ready', function () {
       </div>
     `;
 
-    // Wire up the share button
+    // ============ BANNER BRIGHTNESS DETECTION ============
+    // Loads the banner image, samples pixels, returns whether it's dark
+    function detectBannerBrightness(imageUrl) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function () {
+          try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            // Sample a small region for speed
+            canvas.width = 50;
+            canvas.height = 50;
+            ctx.drawImage(img, 0, 0, 50, 50);
+            const data = ctx.getImageData(0, 0, 50, 50).data;
+            let totalLum = 0;
+            let count = 0;
+            for (let i = 0; i < data.length; i += 4) {
+              const r = data[i], g = data[i + 1], b = data[i + 2];
+              // Perceived luminance formula
+              const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+              totalLum += lum;
+              count++;
+            }
+            const avgLum = totalLum / count;
+            // Below 128 = dark image
+            resolve(avgLum < 128);
+          } catch (e) {
+            reject(e);
+          }
+        };
+        img.onerror = reject;
+        img.src = imageUrl;
+      });
+    }
+
+    // ============ SHARE ============
     const shareBtn = document.getElementById('share-btn-main');
     const shareWrap = document.getElementById('share-wrap');
     const shareUrl = window.location.href;
@@ -63,11 +114,9 @@ window.addEventListener('sjs:ready', function () {
 
     shareBtn.onclick = (e) => {
       e.stopPropagation();
-      // If a share menu is already open, close it
       const existing = shareWrap.querySelector('.share-menu');
       if (existing) { existing.remove(); return; }
 
-      // Build the share menu
       const menu = document.createElement('div');
       menu.className = 'share-menu';
       menu.innerHTML = `
@@ -86,7 +135,6 @@ window.addEventListener('sjs:ready', function () {
       `;
       shareWrap.appendChild(menu);
 
-      // Handle actions
       menu.querySelectorAll('[data-action]').forEach(btn => {
         btn.onclick = async (ev) => {
           ev.stopPropagation();
@@ -96,7 +144,6 @@ window.addEventListener('sjs:ready', function () {
         };
       });
 
-      // Close on outside click
       setTimeout(() => {
         document.addEventListener('click', function closeMenu() {
           const m = shareWrap.querySelector('.share-menu');
@@ -108,33 +155,26 @@ window.addEventListener('sjs:ready', function () {
 
     async function handleShare(action) {
       if (action === 'native') {
-        // Use Web Share API if available (mobile)
         if (navigator.share) {
           try {
             await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
             return;
-          } catch (e) {
-            // User cancelled or error — fall through to copy
-          }
+          } catch (e) {}
         }
-        // Fallback: copy link
         await copyToClipboard(shareUrl);
         showToast('✅ Link copied to clipboard');
         return;
       }
-
       if (action === 'whatsapp') {
         const waUrl = `https://wa.me/?text=${encodeURIComponent(shareText + '\n' + shareUrl)}`;
         window.open(waUrl, '_blank');
         return;
       }
-
       if (action === 'copy') {
         await copyToClipboard(shareUrl);
         showToast('✅ Link copied to clipboard');
         return;
       }
-
       if (action === 'sms') {
         const smsUrl = `sms:?body=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
         window.location.href = smsUrl;
@@ -144,23 +184,14 @@ window.addEventListener('sjs:ready', function () {
 
     async function copyToClipboard(text) {
       try {
-        if (navigator.clipboard) {
-          await navigator.clipboard.writeText(text);
-          return true;
-        }
-        // Fallback for older browsers
+        if (navigator.clipboard) { await navigator.clipboard.writeText(text); return true; }
         const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
         document.execCommand('copy');
         document.body.removeChild(ta);
         return true;
-      } catch (e) {
-        return false;
-      }
+      } catch (e) { return false; }
     }
 
     function showToast(msg) {
@@ -171,7 +202,7 @@ window.addEventListener('sjs:ready', function () {
       setTimeout(() => t.remove(), 2200);
     }
 
-    // ------- PRODUCTS -------
+    // ============ PRODUCTS ============
     const products = DB.getProductsForShop(shop.id).filter(p => p.isPublished && p.isAvailable);
     const grid = document.getElementById('products-grid');
     const noProducts = document.getElementById('no-products');
@@ -179,6 +210,7 @@ window.addEventListener('sjs:ready', function () {
     if (products.length === 0) {
       if (noProducts) noProducts.style.display = 'block';
     } else {
+      if (noProducts) noProducts.style.display = 'none';
       grid.innerHTML = products.map(p => `
         <div class="product-card">
           ${productImageTag(p)}
@@ -194,7 +226,7 @@ window.addEventListener('sjs:ready', function () {
       `).join('');
     }
 
-    // ------- CART -------
+    // ============ CART ============
     let cart = {};
 
     function renderCart() {
