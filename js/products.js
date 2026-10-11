@@ -1,6 +1,5 @@
-window.addEventListener('sjs:ready', function () {
 /* ============================================
-   PRODUCTS PAGE
+   PRODUCTS PAGE — Firebase
    ============================================ */
 
 let currentShop = null;
@@ -11,6 +10,7 @@ function renderProducts() {
   if (!currentShop) return;
   const products = DB.getProductsForShop(currentShop.id);
   const c = document.getElementById('content');
+  if (!c) return;
 
   if (products.length === 0) {
     c.innerHTML = `
@@ -32,8 +32,8 @@ function renderProducts() {
           const margin = p.price - p.cost;
           const pct = p.price > 0 ? ((margin / p.price) * 100).toFixed(0) : 0;
           const low = p.stock <= (p.lowStockAt || 5);
-          const thumb = (typeof productImageTag === 'function')
-            ? `<div style="width:36px;height:36px;border-radius:6px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:0.5rem;">${productImageTag(p, '').replace('product-img', 'thumb-img')}</div>`
+          const thumb = p.image
+            ? `<img src="${esc(p.image)}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;vertical-align:middle;margin-right:0.5rem;">`
             : '';
           return `
             <tr>
@@ -59,12 +59,7 @@ function openProductForm(id) {
     return;
   }
 
-  // Find product if editing
-  if (id) {
-    editingProduct = DB.getProducts().find(p => p.id === id) || null;
-  } else {
-    editingProduct = null;
-  }
+  editingProduct = id ? (DB.getProducts().find(p => p.id === id) || null) : null;
 
   const p = editingProduct || {
     name: '', description: '', category: 'Groceries', price: '', cost: '',
@@ -88,17 +83,14 @@ function openProductForm(id) {
           <h2>${editingProduct ? 'Edit Product' : 'Add Product'}</h2>
           <button class="modal-close" onclick="closeModal()">×</button>
         </div>
-
         <div class="form-group">
           <label>Product Image</label>
           <div id="product-img-uploader"></div>
         </div>
-
         <div class="form-group">
           <label>Product Name *</label>
           <input id="p-name" class="form-input" value="${esc(p.name)}">
         </div>
-
         <div class="form-group">
           <label>Category</label>
           <select id="p-category" class="form-input" onchange="onCategoryChange()">
@@ -107,17 +99,14 @@ function openProductForm(id) {
           </select>
           <div class="category-hint" id="unit-hint"></div>
         </div>
-
         <div class="form-group">
           <label>Description</label>
           <input id="p-desc" class="form-input" value="${esc(p.description || '')}">
         </div>
-
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
           <div class="form-group"><label>Purchase Cost ₹</label><input type="number" id="p-cost" class="form-input" value="${p.cost}"></div>
           <div class="form-group"><label>Selling Price ₹ *</label><input type="number" id="p-price" class="form-input" value="${p.price}"></div>
         </div>
-
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
           <div class="form-group"><label>Stock Qty</label><input type="number" id="p-stock" class="form-input" value="${p.stock}"></div>
           <div class="form-group"><label>Unit</label>
@@ -126,13 +115,10 @@ function openProductForm(id) {
             </select>
           </div>
         </div>
-
         <div class="form-group"><label>Low Stock Alert At</label><input type="number" id="p-lowstock" class="form-input" value="${p.lowStockAt}"></div>
-
         <div class="form-group">
           <label><input type="checkbox" id="p-published" ${p.isPublished ? 'checked' : ''}> Publish on public marketplace</label>
         </div>
-
         <div class="modal-footer">
           <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
           <button class="btn btn-primary" onclick="saveProduct()">${editingProduct ? 'Save' : 'Add Product'}</button>
@@ -140,14 +126,11 @@ function openProductForm(id) {
       </div>
     </div>`;
 
-  // Image uploader
   if (typeof renderImageUploader === 'function') {
     renderImageUploader('product-img-uploader', currentImageData, (data) => {
       currentImageData = data;
     });
   }
-
-  // Trigger initial unit hint
   onCategoryChange();
 }
 
@@ -177,12 +160,11 @@ function closeModal() {
   currentImageData = '';
 }
 
-function saveProduct() {
+async function saveProduct() {
   if (!currentShop) {
     alert('Shop not loaded. Please refresh.');
     return;
   }
-
   const nameEl = document.getElementById('p-name');
   const priceEl = document.getElementById('p-price');
   if (!nameEl || !priceEl) return;
@@ -206,67 +188,34 @@ function saveProduct() {
   };
 
   const all = DB.getProducts();
-
   if (editingProduct && editingProduct.id) {
-    // EDIT existing
     const idx = all.findIndex(p => p.id === editingProduct.id);
-    if (idx >= 0) {
-      all[idx] = { ...all[idx], ...data, updatedAt: new Date().toISOString() };
-    }
+    if (idx >= 0) all[idx] = { ...all[idx], ...data, updatedAt: new Date().toISOString() };
   } else {
-    // NEW product
-    all.push({
-      id: uid(),
-      shopId: currentShop.id,
-      ...data,
-      createdAt: new Date().toISOString()
-    });
+    all.push({ id: uid(), shopId: currentShop.id, ...data, createdAt: new Date().toISOString() });
   }
 
-  DB.saveProducts(all);
+  await DB.saveProducts(all);
   closeModal();
   renderProducts();
 }
 
-function deleteProduct(id) {
+async function deleteProduct(id) {
   if (!confirm('Delete this product?')) return;
-  DB.saveProducts(DB.getProducts().filter(p => p.id !== id));
+  await DB.saveProducts(DB.getProducts().filter(p => p.id !== id));
   renderProducts();
 }
 
-// ============================================
-// INITIALIZE — this sets currentShop
-// ============================================
-if (window.location.pathname.endsWith('products.html')) {
-  // Small delay to let dashboard.js load first
-  setTimeout(() => {
-    if (typeof initDashboard === 'function') {
-      currentShop = initDashboard('products');
-      if (currentShop) renderProducts();
-    } else {
-      console.error('dashboard.js did not load');
-    }
-  }, 100);
-}
-function deleteProduct(id) {
-  if (!confirm('Delete this product?')) return;
-  DB.saveProducts(DB.getProducts().filter(p => p.id !== id));
-  renderProducts();
-}
+// Expose to window so HTML onclick works
+window.openProductForm = openProductForm;
+window.closeModal = closeModal;
+window.saveProduct = saveProduct;
+window.deleteProduct = deleteProduct;
+window.onCategoryChange = onCategoryChange;
 
-// ============================================
-// INITIALIZE
-// ============================================
-if (window.location.pathname.endsWith('products.html')) {
-  // Wait a tick for dashboard.js to run first (sets up shop + sidebar)
-  window.addEventListener('sjs:ready', initProductsPage);
-  // Fallback if sjs:ready never fires
-  setTimeout(() => {
-    if (!currentShop) initProductsPage();
-  }, 500);
-}
-
-function initProductsPage() {
+// Initialize
+window.addEventListener('sjs:ready', function () {
+  if (!window.location.pathname.endsWith('products.html')) return;
   if (typeof initDashboard !== 'function') {
     console.error('dashboard.js not loaded');
     return;
@@ -274,5 +223,4 @@ function initProductsPage() {
   if (!document.getElementById('content')) return;
   currentShop = initDashboard('products');
   if (currentShop) renderProducts();
-}
 });
