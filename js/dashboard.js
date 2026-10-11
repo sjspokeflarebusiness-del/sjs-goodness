@@ -1,3 +1,4 @@
+window.addEventListener('sjs:ready', function () {
 /* ============================================
    SHARED DASHBOARD BOILERPLATE
    ============================================ */
@@ -113,3 +114,4 @@ if (Auth.isAdmin()) {
     ` : ''}
   `;
 })();
+});
